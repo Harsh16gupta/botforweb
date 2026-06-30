@@ -1,3 +1,9 @@
+"""
+Main FastAPI Application Entrypoint.
+Sets up the API instance, CORS middleware, API v1 routes, 
+and automatically handles database tables creation on startup.
+"""
+
 from contextlib import asynccontextmanager
 import logging
 from fastapi import FastAPI

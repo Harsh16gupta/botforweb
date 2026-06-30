@@ -1,3 +1,9 @@
+"""
+Authentication Endpoints.
+Handles signups (onboarding users and organizations), 
+standard OAuth2 login token exchanges, and active session fetching.
+"""
+
 import secrets
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status

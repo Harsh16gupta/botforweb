@@ -1,3 +1,9 @@
+"""
+Database Connection Manager.
+Establishes the async SQLAlchemy engine connection with PostgreSQL and 
+exposes the async session context managers and ORM base model.
+"""
+
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase

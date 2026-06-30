@@ -1,3 +1,9 @@
+"""
+Markdown & ZIP Document Parser.
+Handles frontmatter parsing for metadata attributes and processes 
+ZIP archives containing multiple markdown documents.
+"""
+
 import io
 import re
 import zipfile

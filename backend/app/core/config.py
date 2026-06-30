@@ -1,3 +1,8 @@
+"""
+Application Configuration Settings Loader.
+Uses Pydantic Settings to bind environment variables from system env or local .env file.
+"""
+
 import os
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict

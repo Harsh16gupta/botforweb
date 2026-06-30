@@ -1,3 +1,8 @@
+"""
+PDF Text Extraction Service.
+Extracts plaintext from uploaded PDF byte files using the pypdf library.
+"""
+
 import io
 import logging
 from pypdf import PdfReader

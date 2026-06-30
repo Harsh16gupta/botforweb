@@ -1,3 +1,9 @@
+"""
+Security and Cryptography Helpers.
+Manages password hashing (bcrypt), token encoding/decoding (JWT), 
+and user session validation dependency injection.
+"""
+
 from datetime import datetime, timedelta
 from typing import Any, Union, Optional
 from jose import jwt, JWTError

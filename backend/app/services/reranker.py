@@ -1,3 +1,9 @@
+"""
+Cohere Rerank Integration Service.
+Scores search matches based on query semantic relevance, 
+shrinking the chunk count down to fit in context windows.
+"""
+
 import logging
 from typing import List, Dict, Any
 import cohere

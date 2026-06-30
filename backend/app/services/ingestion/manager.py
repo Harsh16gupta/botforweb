@@ -1,3 +1,9 @@
+"""
+Ingestion Pipeline Coordinator.
+Coordinates file reading, parsing (PDF/MD/ZIP), 
+text splitting, and Qdrant index execution.
+"""
+
 import logging
 from typing import List, Dict, Any
 from app.services.ingestion.pdf import extract_text_from_pdf

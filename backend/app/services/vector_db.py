@@ -1,3 +1,9 @@
+"""
+Qdrant Vector Database Service.
+Handles client initialization, dynamic multi-tenant collection creation, 
+local dense and sparse embedding generation (via FastEmbed), and hybrid search.
+"""
+
 import logging
 from typing import List, Dict, Any, Tuple, Optional
 from qdrant_client import QdrantClient
@@ -100,22 +106,23 @@ class QdrantManager:
         Embeds and stores document chunks into Qdrant.
         Each chunk dict should contain: 'text', 'metadata' (dict).
         """
+        # Step 1: Resolve the isolated collection name for the organization
         collection_name = self.get_collection_name(organization_id)
+        # Step 2: Auto-create the collection (with correct schemas) if it does not exist
         self.create_organization_collection(organization_id)
 
+        # Step 3: Extract texts and generate the dense and sparse embeddings
         texts = [chunk["text"] for chunk in chunks]
         dense_vectors, sparse_vectors = self.embed_texts(texts)
 
+        # Step 4: Build Qdrant PointStruct objects for batch upload
         points = []
         for i, chunk in enumerate(chunks):
-            # Generate a stable UUID or use integer hashing for point ID
-            # To keep it simple and clean, generate integer ids sequentially per upload,
-            # or use standard UUID4. Let's use simple indexing with a hash.
+            # Generate a stable positive 64-bit integer ID for the vector point
             point_id = hash(f"{document_id}_{i}")
-            
-            # Ensure positive 64-bit int for Qdrant compatibility if using hash
             point_id = abs(point_id) % (2**63 - 1)
 
+            # Store the text body and original file metadata directly inside the vector payload
             payload = {
                 "document_id": document_id,
                 "text": chunk["text"],
@@ -133,6 +140,7 @@ class QdrantManager:
                 )
             )
 
+        # Step 5: Upload all points to the isolated Qdrant collection in a single batch
         logger.info(f"Upserting {len(points)} chunks to collection {collection_name}")
         self.client.upsert(
             collection_name=collection_name,
@@ -151,44 +159,44 @@ class QdrantManager:
         Performs hybrid search combining dense semantic and sparse lexical vector scores.
         alpha (0.0 to 1.0): controls the weight between dense (semantic) and sparse (keyword) search.
         """
+        # If the collection doesn't exist yet, we have no indexed data. Return empty results.
         collection_name = self.get_collection_name(organization_id)
         if not self.client.collection_exists(collection_name):
             return []
 
-        # Embed query text
+        # Step 1: Embed query text to search vectors
         dense_vectors, sparse_vectors = self.embed_texts([query])
         query_dense = dense_vectors[0]
         query_sparse = sparse_vectors[0]
 
-        # Use Qdrant's Query API for hybrid search
-        # Query dense vector
+        # Step 2: Set up Prefetch queries for both search index types.
+        # Dense prefetch (searches meaning/semantics)
         dense_prefetch = models.Prefetch(
             query=query_dense,
             using="dense",
             limit=limit * 2,
         )
         
-        # Query sparse vector
+        # Sparse prefetch (searches exact keyword/token matches)
         sparse_prefetch = models.Prefetch(
             query=query_sparse,
             using="sparse",
             limit=limit * 2,
         )
 
-        # RRF (Reciprocal Rank Fusion) or relative scoring.
-        # Since Qdrant v1.10 we can do fusion natively, but for standard compatibility,
-        # we can prefetch both and merge them, or query with a joint model.
-        # Let's perform a native combination query in Qdrant using the Prefetch API.
+        # Step 3: Run the combined hybrid search.
+        # Qdrant queries both, and uses Reciprocal Rank Fusion (RRF)
+        # to merge the rankings into a single sorted list.
         results = self.client.query_points(
             collection_name=collection_name,
             prefetch=[dense_prefetch, sparse_prefetch],
-            # Combine scores using Reciprocal Rank Fusion (RRF)
             query=models.FusionQuery(
                 fusion=models.Fusion.RRF
             ),
             limit=limit,
         )
 
+        # Step 4: Format output points into simple payload dictionaries
         matched_chunks = []
         for point in results.points:
             matched_chunks.append({

@@ -1,3 +1,9 @@
+"""
+Database Models (SQLAlchemy ORM).
+Defines schemas for Organizations, Users, Documents, Conversations, and Messages 
+with relationships and cascade behavior.
+"""
+
 import datetime
 from typing import List, Optional
 from sqlalchemy import String, ForeignKey, DateTime, Text, Integer

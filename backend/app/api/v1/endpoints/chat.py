@@ -1,3 +1,9 @@
+"""
+Chat and RAG Query Endpoints.
+Executes RAG searches (hybrid Qdrant retrieval + Cohere Reranking), 
+queries DeepSeek Chat API, formats citations, and stores conversation histories.
+"""
+
 import logging
 import time
 from typing import List
@@ -33,14 +39,14 @@ async def query_chatbot(
 ):
     """
     RAG-powered chat query endpoint.
-    Retrieves documents, reranks them, queries Claude, and returns the answer with citations.
+    Retrieves documents, reranks them, queries DeepSeek, and returns the answer with citations.
     """
     org_id = current_user.organization_id
     query = request.query
 
-    # 1. Fetch relevant chunks from Qdrant using Hybrid Search
+    # Step 1: Fetch candidate chunks from Qdrant using Hybrid Search (dense + sparse)
     try:
-        # Retrieve top 10 chunks initially (both dense and sparse)
+        # Retrieve the top 10 potential matching chunks
         retrieved_chunks = vector_db.hybrid_search(
             organization_id=org_id,
             query=query,
@@ -50,15 +56,15 @@ async def query_chatbot(
         logger.error(f"Vector search failed: {str(e)}")
         retrieved_chunks = []
 
-    # 2. Rerank retrieved chunks using Cohere Reranker
-    # Reranking filters the top 10 down to the top 3 most relevant context chunks
+    # Step 2: Rerank chunks using Cohere Rerank API
+    # Filters candidate chunks down to the top 3 most relevant blocks to fit inside the LLM context window
     reranked_chunks = reranker.rerank(
         query=query,
         documents=retrieved_chunks,
         top_n=3,
     )
 
-    # 3. Create or Fetch Conversation
+    # Step 3: Fetch the active Conversation or create a new one if not provided
     if request.conversation_id:
         result = await db.execute(
             select(Conversation).filter(
@@ -73,6 +79,7 @@ async def query_chatbot(
                 detail="Conversation not found."
             )
     else:
+        # Auto-create conversation with a clean title derived from the query
         conversation = Conversation(
             title=query[:50] + ("..." if len(query) > 50 else ""),
             organization_id=org_id
@@ -80,7 +87,7 @@ async def query_chatbot(
         db.add(conversation)
         await db.flush()  # Populate conversation.id
 
-    # 4. Save User Message to Database
+    # Step 4: Write the user's query message to the SQL database
     user_msg = Message(
         conversation_id=conversation.id,
         role="user",
@@ -88,7 +95,7 @@ async def query_chatbot(
     )
     db.add(user_msg)
 
-    # 5. Formulate System Prompt with Retrieval Context
+    # Step 5: Format the dynamic context text and build the system prompt instructing the LLM
     context_text = "\n\n".join([
         f"Source File: {chunk['metadata'].get('filename', 'Unknown')}\n"
         f"Content:\n{chunk['text']}"
@@ -105,7 +112,7 @@ async def query_chatbot(
         "to formulate your response."
     )
 
-    # 6. Query Claude (or run in Mock Mode if key is missing)
+    # Step 6: Query DeepSeek completions (or run in offline Mock Mode if key is missing)
     start_time = time.time()
     tokens_used = None
     

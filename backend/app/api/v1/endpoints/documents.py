@@ -1,3 +1,9 @@
+"""
+Document Management Endpoints.
+Handles file uploads (PDF, Markdown, ZIP archives), list actions, 
+and file deletions (erasing PostgreSQL records and Qdrant vector points).
+"""
+
 import logging
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
