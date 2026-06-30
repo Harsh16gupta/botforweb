@@ -14,7 +14,7 @@ from sqlalchemy.future import select
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token, get_current_user
 from app.models.models import User, Organization
-from app.schemas.auth import UserCreate, UserResponse, Token
+from app.schemas.auth import UserCreate, UserResponse, Token, OrganizationResponse
 
 router = APIRouter()
 
@@ -89,3 +89,21 @@ async def get_me(current_user: User = Depends(get_current_user)):
     Retrieve current authenticated user.
     """
     return current_user
+
+
+@router.get("/organization", response_model=OrganizationResponse)
+async def get_organization(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieve the active user's organization details (including API key).
+    """
+    result = await db.execute(select(Organization).filter(Organization.id == current_user.organization_id))
+    org = result.scalars().first()
+    if not org:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+    return org

@@ -25,3 +25,13 @@ class Token(BaseModel):
 
 class TokenPayload(BaseModel):
     sub: str
+
+
+class OrganizationResponse(BaseModel):
+    id: int
+    name: str
+    api_key: str
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True

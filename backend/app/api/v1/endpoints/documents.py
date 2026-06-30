@@ -16,19 +16,20 @@ from app.models.models import User, Document
 from app.schemas.document import DocumentResponse
 from app.services.ingestion.manager import ingestion_manager
 from app.services.vector_db import vector_db
+from app.workers.tasks import process_document_ingestion
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Upload a document (PDF, MD, or ZIP of Markdown files) and index its contents.
+    Upload a document (PDF, MD, or ZIP of Markdown files) and start async ingestion.
     """
     filename = file.filename
     # Extract file extension
@@ -49,34 +50,31 @@ async def upload_document(
         filename=filename,
         file_type=file_type,
         organization_id=current_user.organization_id,
+        status="processing",
     )
     db.add(new_doc)
     await db.flush()  # Populate new_doc.id
 
     try:
-        # Index document contents into Qdrant (synchronously for MVP)
-        chunks_indexed = ingestion_manager.ingest_document(
-            organization_id=current_user.organization_id,
-            document_id=new_doc.id,
-            filename=filename,
-            file_type=file_type,
-            file_bytes=file_bytes,
+        # Dispatch background Celery task
+        process_document_ingestion.delay(
+            current_user.organization_id,
+            new_doc.id,
+            filename,
+            file_type,
+            file_bytes.hex(),
         )
         
-        if chunks_indexed == 0:
-            # If no content could be indexed, raise an error (and roll back DB entry)
-            raise ValueError("No text content could be extracted or indexed from the uploaded file.")
-            
         await db.commit()
         await db.refresh(new_doc)
         return new_doc
         
     except Exception as e:
         await db.rollback()
-        logger.error(f"Failed to process uploaded file: {str(e)}")
+        logger.error(f"Failed to queue uploaded file: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process and index document: {str(e)}"
+            detail=f"Failed to queue document for processing: {str(e)}"
         )
 
 

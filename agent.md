@@ -34,6 +34,10 @@ This is a commercial SaaS. Data isolation between customers is our highest prior
 - **No Emojis Rule**: Never add emojis to the codebase, including inline comments, docstrings, print statements, or documentation markdown files. Maintain a strictly professional style.
 - **Commit Naming Rule**: Keep Git commit messages simple, concise, and descriptive (e.g., `feat: ...`, `fix: ...`, `style: ...`, `test: ...`).
 
+### 5. Modular Frontend Architecture (No Monoliths)
+- **Component Decomposition**: Never build monolithic views (e.g., writing all components, state, and fetch logic in a single `App.tsx` file). Break the UI down into small, single-responsibility components under `src/components/`.
+- **API Service Layer**: Keep UI components decoupled from data fetching. Encapsulate all backend HTTP calls inside a dedicated API service class/helper (`src/services/api.ts`) and export a typed client instance.
+
 ---
 
 ## Verification and Testing Rules

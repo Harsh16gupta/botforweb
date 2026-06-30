@@ -91,15 +91,38 @@ acme deploy --prod
         headers=headers,
         timeout=None
     )
-    if upload_response.status_code != 201:
+    if upload_response.status_code != 202:
         print(f"[ERROR] Document upload failed: {upload_response.text}")
         return
         
     doc_id = upload_response.json()["id"]
-    print(f"[SUCCESS] Document successfully indexed in Qdrant! Document ID: {doc_id}")
+    print(f"[SUCCESS] Document upload accepted. ID: {doc_id}. Polling for ingestion...")
 
-    # Wait briefly for vector db processing
-    time.sleep(1)
+    # Poll status until active or failed
+    max_retries = 15
+    for attempt in range(max_retries):
+        list_response = httpx.get(f"{API_URL}/docs/", headers=headers)
+        if list_response.status_code == 200:
+            docs = list_response.json()
+            doc = next((d for d in docs if d["id"] == doc_id), None)
+            if doc:
+                status = doc.get("status")
+                if status == "active":
+                    print("[SUCCESS] Document ingestion completed successfully!")
+                    break
+                elif status == "failed":
+                    print("[ERROR] Document ingestion failed according to worker status.")
+                    return
+            else:
+                print("[ERROR] Document not found in list.")
+                return
+        else:
+            print(f"[ERROR] Failed to list documents: {list_response.text}")
+            return
+        time.sleep(1)
+    else:
+        print("[ERROR] Ingestion polling timed out.")
+        return
 
     # 4. Query Chatbot (RAG Search)
     query = "How do I install the Acme CLI and deploy to production?"

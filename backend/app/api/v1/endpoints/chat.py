@@ -15,7 +15,7 @@ from openai import OpenAI
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_tenant_id
 from app.models.models import User, Conversation, Message
 from app.schemas.chat import QueryRequest, QueryResponse, ConversationResponse, Citation
 from app.services.vector_db import vector_db
@@ -35,13 +35,12 @@ deepseek_client = OpenAI(
 async def query_chatbot(
     request: QueryRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    org_id: int = Depends(get_tenant_id),
 ):
     """
     RAG-powered chat query endpoint.
     Retrieves documents, reranks them, queries DeepSeek, and returns the answer with citations.
     """
-    org_id = current_user.organization_id
     query = request.query
 
     # Step 1: Fetch candidate chunks from Qdrant using Hybrid Search (dense + sparse)

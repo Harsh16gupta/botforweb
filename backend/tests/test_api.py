@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import pytest
 from httpx import AsyncClient
 
@@ -44,13 +44,11 @@ async def test_auth_flow(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@patch("app.api.v1.endpoints.documents.ingestion_manager.ingest_document")
-async def test_document_upload(mock_ingest, client: AsyncClient):
+@patch("app.api.v1.endpoints.documents.process_document_ingestion")
+async def test_document_upload(mock_task, client: AsyncClient):
     """
     Test uploading a document and checking metadata mapping.
     """
-    mock_ingest.return_value = 5  # Mock 5 chunks indexed
-
     # Create user & login
     await client.post("/api/v1/auth/signup", json={
         "email": "uploader@company.com",
@@ -69,19 +67,18 @@ async def test_document_upload(mock_ingest, client: AsyncClient):
     files = {"file": ("test.md", b"# Document Header\nSome body text.", "text/markdown")}
     response = await client.post("/api/v1/docs/upload", files=files, headers=headers)
     
-    assert response.status_code == 201
+    assert response.status_code == 202
+    mock_task.delay.assert_called_once()
     doc_data = response.json()
     assert doc_data["filename"] == "test.md"
     assert doc_data["file_type"] == "md"
-    
-    # Verify mock was called
-    mock_ingest.assert_called_once()
 
 
 @pytest.mark.asyncio
 @patch("app.api.v1.endpoints.chat.vector_db.hybrid_search")
 @patch("app.api.v1.endpoints.chat.reranker.rerank")
-async def test_chat_query(mock_rerank, mock_hybrid, client: AsyncClient):
+@patch("app.api.v1.endpoints.chat.deepseek_client")
+async def test_chat_query(mock_deepseek, mock_rerank, mock_hybrid, client: AsyncClient):
     """
     Test RAG chatbot query flow (in Mock Mode).
     """
@@ -92,6 +89,15 @@ async def test_chat_query(mock_rerank, mock_hybrid, client: AsyncClient):
     mock_rerank.return_value = [
         {"text": "Acme config parameter X is 42.", "metadata": {"filename": "config.md"}, "document_id": 1, "score": 0.9}
     ]
+
+    # Setup mock DeepSeek client completions
+    if mock_deepseek is not None:
+        mock_choice = MagicMock()
+        mock_choice.message.content = "Acme config parameter X is 42."
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage.total_tokens = 100
+        mock_deepseek.chat.completions.create.return_value = mock_response
 
     # Create user & login
     await client.post("/api/v1/auth/signup", json={

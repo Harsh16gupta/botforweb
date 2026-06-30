@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import engine, Base, init_rls_policies
 from app.api.v1.api import api_router
 
 # Configure logging
@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing database tables...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await init_rls_policies(conn)
     
     logger.info("Database tables initialized successfully.")
     yield
