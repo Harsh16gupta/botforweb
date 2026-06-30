@@ -25,11 +25,11 @@ def run_e2e_test():
     try:
         response = httpx.post(f"{API_URL}/auth/signup", json=signup_payload, timeout=None)
         if response.status_code != 201:
-            print(f"❌ Signup failed ({response.status_code}): {response.text}")
+            print(f"[ERROR] Signup failed ({response.status_code}): {response.text}")
             return
-        print("✅ User signed up successfully!")
+        print("[SUCCESS] User signed up successfully!")
     except Exception as e:
-        print(f"❌ Connection error: Is the FastAPI server running on port 8000? {str(e)}")
+        print(f"[ERROR] Connection error: Is the FastAPI server running on port 8000? {str(e)}")
         return
 
     # 2. Login
@@ -40,12 +40,12 @@ def run_e2e_test():
         timeout=None
     )
     if login_response.status_code != 200:
-        print(f"❌ Login failed: {login_response.text}")
-        return
+            print(f"[ERROR] Login failed: {login_response.text}")
+            return
     
     token = login_response.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
-    print("✅ Login successful! Token acquired.")
+    print("[SUCCESS] Login successful! Token acquired.")
 
     # 3. Create & Upload Sample Documentation
     sample_doc_content = """---
@@ -92,11 +92,11 @@ acme deploy --prod
         timeout=None
     )
     if upload_response.status_code != 201:
-        print(f"❌ Document upload failed: {upload_response.text}")
+        print(f"[ERROR] Document upload failed: {upload_response.text}")
         return
         
     doc_id = upload_response.json()["id"]
-    print(f"✅ Document successfully indexed in Qdrant! Document ID: {doc_id}")
+    print(f"[SUCCESS] Document successfully indexed in Qdrant! Document ID: {doc_id}")
 
     # Wait briefly for vector db processing
     time.sleep(1)
@@ -113,7 +113,7 @@ acme deploy --prod
         timeout=None
     )
     if chat_response.status_code != 200:
-        print(f"❌ Chat query failed: {chat_response.text}")
+        print(f"[ERROR] Chat query failed: {chat_response.text}")
         return
         
     chat_data = chat_response.json()
@@ -122,7 +122,7 @@ acme deploy --prod
     print("----------------------")
     print("Citations:")
     for citation in chat_data["citations"]:
-        print(f"📄 Source: {citation['filename']}")
+        print(f"[SOURCE] {citation['filename']}")
         print(f"   Context snippet: \"{citation['text'][:80]}...\"")
     print("-" * 22)
 
@@ -134,11 +134,11 @@ acme deploy --prod
         timeout=None
     )
     if delete_response.status_code == 244 or delete_response.status_code >= 400:
-        print(f"❌ Failed to delete document: {delete_response.text}")
+        print(f"[ERROR] Failed to delete document: {delete_response.text}")
     else:
-        print("✅ Document and vector chunks cleaned up successfully.")
+        print("[SUCCESS] Document and vector chunks cleaned up successfully.")
 
-    print("\n🎉 E2E Smoke Test completed successfully!")
+    print("\n[SUCCESS] E2E Smoke Test completed successfully!")
     print("=" * 60)
 
 

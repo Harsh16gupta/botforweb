@@ -4,14 +4,14 @@ Welcome! If you are an AI coding agent tasked with developing, updating, or debu
 
 ---
 
-## 🔍 How to Onboard Yourself (First Steps)
+## How to Onboard Yourself (First Steps)
 1. **Read the plan**: Read [plan.md](file:///home/harsh-gupta/Projects/botforweb/plan.md) to understand the current milestone, folder structure, and next steps.
 2. **Inspect the Files**: Use `list_dir` on the project root to map out the current state.
 3. **Run existing tests**: Run `pytest` inside the `backend` folder to ensure everything compiles and passes before you make changes.
 
 ---
 
-## 🛠️ Codebase Architecture & Design Rules
+## Codebase Architecture & Design Rules
 
 ### 1. Zero-Leakage Multi-Tenancy (CRITICAL)
 This is a commercial SaaS. Data isolation between customers is our highest priority:
@@ -34,7 +34,7 @@ This is a commercial SaaS. Data isolation between customers is our highest prior
 
 ---
 
-## 🧪 Verification and Testing Rules
+## Verification and Testing Rules
 - Do not mark tasks completed until you have verified them.
 - **Write tests first or concurrently**: For every new API endpoint or backend service, add a corresponding test in `backend/tests/`.
 - **Run E2E smoke tests**: After major API updates, launch the server and run:
