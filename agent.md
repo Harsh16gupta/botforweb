@@ -31,6 +31,8 @@ This is a commercial SaaS. Data isolation between customers is our highest prior
 ### 4. Code Simplicity & Readability
 - Keep code clean and self-contained. Avoid over-engineering.
 - Write docstrings and type annotations for all new modules, routes, and functions.
+- **No Emojis Rule**: Never add emojis to the codebase, including inline comments, docstrings, print statements, or documentation markdown files. Maintain a strictly professional style.
+- **Commit Naming Rule**: Keep Git commit messages simple, concise, and descriptive (e.g., `feat: ...`, `fix: ...`, `style: ...`, `test: ...`).
 
 ---
 
