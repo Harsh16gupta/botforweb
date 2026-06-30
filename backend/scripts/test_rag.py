@@ -23,7 +23,7 @@ def run_e2e_test():
     
     print(f"\n1. Signing up user: {email} for organization: '{org_name}'...")
     try:
-        response = httpx.post(f"{API_URL}/auth/signup", json=signup_payload)
+        response = httpx.post(f"{API_URL}/auth/signup", json=signup_payload, timeout=None)
         if response.status_code != 201:
             print(f"❌ Signup failed ({response.status_code}): {response.text}")
             return
@@ -36,7 +36,8 @@ def run_e2e_test():
     print("\n2. Logging in to obtain JWT access token...")
     login_response = httpx.post(
         f"{API_URL}/auth/login",
-        data={"username": email, "password": password}
+        data={"username": email, "password": password},
+        timeout=None
     )
     if login_response.status_code != 200:
         print(f"❌ Login failed: {login_response.text}")
@@ -87,7 +88,8 @@ acme deploy --prod
     upload_response = httpx.post(
         f"{API_URL}/docs/upload",
         files=file_payload,
-        headers=headers
+        headers=headers,
+        timeout=None
     )
     if upload_response.status_code != 201:
         print(f"❌ Document upload failed: {upload_response.text}")
@@ -107,7 +109,8 @@ acme deploy --prod
     chat_response = httpx.post(
         f"{API_URL}/chat/query",
         json=chat_payload,
-        headers=headers
+        headers=headers,
+        timeout=None
     )
     if chat_response.status_code != 200:
         print(f"❌ Chat query failed: {chat_response.text}")
@@ -127,7 +130,8 @@ acme deploy --prod
     print(f"\n5. Deleting document ID {doc_id} to clean up vector store and database...")
     delete_response = httpx.delete(
         f"{API_URL}/docs/{doc_id}",
-        headers=headers
+        headers=headers,
+        timeout=None
     )
     if delete_response.status_code == 244 or delete_response.status_code >= 400:
         print(f"❌ Failed to delete document: {delete_response.text}")
