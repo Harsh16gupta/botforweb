@@ -40,12 +40,17 @@ async def lifespan(app: FastAPI):
     logger.info("Database engine closed.")
 
 
+from app.core.observability import init_observability
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Multi-tenant Documentation Chatbot SaaS API",
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Initialize observability (OpenTelemetry & Langfuse)
+init_observability(app)
 
 # Enable CORS for frontend integration
 app.add_middleware(

@@ -18,6 +18,8 @@ class QueryResponse(BaseModel):
     conversation_id: int
     answer: str
     citations: List[Citation]
+    confidence_score: Optional[float] = None
+    faithfulness_score: Optional[float] = None
 
 
 class MessageResponse(BaseModel):

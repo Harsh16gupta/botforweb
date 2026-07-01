@@ -1,0 +1,352 @@
+[
+  {
+    "id": 1,
+    "query": "How do I execute step 1 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 1 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-1 --run",
+    "type": "supported"
+  },
+  {
+    "id": 2,
+    "query": "How do I execute step 2 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 2 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-2 --run",
+    "type": "supported"
+  },
+  {
+    "id": 3,
+    "query": "How do I execute step 3 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 3 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-3 --run",
+    "type": "supported"
+  },
+  {
+    "id": 4,
+    "query": "How do I execute step 4 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 4 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-4 --run",
+    "type": "supported"
+  },
+  {
+    "id": 5,
+    "query": "How do I execute step 5 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 5 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-5 --run",
+    "type": "supported"
+  },
+  {
+    "id": 6,
+    "query": "How do I execute step 6 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 6 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-6 --run",
+    "type": "supported"
+  },
+  {
+    "id": 7,
+    "query": "How do I execute step 7 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 7 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-7 --run",
+    "type": "supported"
+  },
+  {
+    "id": 8,
+    "query": "How do I execute step 8 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 8 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-8 --run",
+    "type": "supported"
+  },
+  {
+    "id": 9,
+    "query": "How do I execute step 9 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 9 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-9 --run",
+    "type": "supported"
+  },
+  {
+    "id": 10,
+    "query": "How do I execute step 10 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 10 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-10 --run",
+    "type": "supported"
+  },
+  {
+    "id": 11,
+    "query": "How do I execute step 11 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 11 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-11 --run",
+    "type": "supported"
+  },
+  {
+    "id": 12,
+    "query": "How do I execute step 12 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 12 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-12 --run",
+    "type": "supported"
+  },
+  {
+    "id": 13,
+    "query": "How do I execute step 13 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 13 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-13 --run",
+    "type": "supported"
+  },
+  {
+    "id": 14,
+    "query": "How do I execute step 14 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 14 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-14 --run",
+    "type": "supported"
+  },
+  {
+    "id": 15,
+    "query": "How do I execute step 15 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 15 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-15 --run",
+    "type": "supported"
+  },
+  {
+    "id": 16,
+    "query": "How do I execute step 16 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 16 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-16 --run",
+    "type": "supported"
+  },
+  {
+    "id": 17,
+    "query": "How do I execute step 17 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 17 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-17 --run",
+    "type": "supported"
+  },
+  {
+    "id": 18,
+    "query": "How do I execute step 18 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 18 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-18 --run",
+    "type": "supported"
+  },
+  {
+    "id": 19,
+    "query": "How do I execute step 19 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 19 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-19 --run",
+    "type": "supported"
+  },
+  {
+    "id": 20,
+    "query": "How do I execute step 20 in the Acme CLI process?",
+    "context": "# Acme CLI Guide\n\nTo execute step 20 in the Acme CLI process, run the command: .",
+    "expected_substring": "acme step-20 --run",
+    "type": "supported"
+  },
+  {
+    "id": 21,
+    "query": "What is the population of city code 21?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 22,
+    "query": "What is the population of city code 22?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 23,
+    "query": "What is the population of city code 23?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 24,
+    "query": "What is the population of city code 24?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 25,
+    "query": "What is the population of city code 25?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 26,
+    "query": "What is the population of city code 26?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 27,
+    "query": "What is the population of city code 27?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 28,
+    "query": "What is the population of city code 28?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 29,
+    "query": "What is the population of city code 29?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 30,
+    "query": "What is the population of city code 30?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 31,
+    "query": "What is the population of city code 31?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 32,
+    "query": "What is the population of city code 32?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 33,
+    "query": "What is the population of city code 33?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 34,
+    "query": "What is the population of city code 34?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 35,
+    "query": "What is the population of city code 35?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 36,
+    "query": "What is the population of city code 36?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 37,
+    "query": "What is the population of city code 37?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 38,
+    "query": "What is the population of city code 38?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 39,
+    "query": "What is the population of city code 39?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 40,
+    "query": "What is the population of city code 40?",
+    "context": "",
+    "expected_substring": "I am sorry, but I do not have enough information",
+    "type": "unsupported"
+  },
+  {
+    "id": 41,
+    "query": "Explain config settings parameter 41 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 41 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 42,
+    "query": "Explain config settings parameter 42 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 42 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 43,
+    "query": "Explain config settings parameter 43 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 43 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 44,
+    "query": "Explain config settings parameter 44 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 44 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 45,
+    "query": "Explain config settings parameter 45 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 45 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 46,
+    "query": "Explain config settings parameter 46 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 46 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 47,
+    "query": "Explain config settings parameter 47 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 47 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 48,
+    "query": "Explain config settings parameter 48 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 48 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 49,
+    "query": "Explain config settings parameter 49 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 49 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  },
+  {
+    "id": 50,
+    "query": "Explain config settings parameter 50 for third party systems.",
+    "context": "# Configuration Settings\nSettings parameter 50 is handled by external systems.",
+    "expected_substring": "external systems",
+    "type": "edge"
+  }
+]

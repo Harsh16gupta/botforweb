@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     DEEPSEEK_MODEL: str = "deepseek-chat"
     COHERE_API_KEY: Optional[str] = None
 
+    # Observability Settings
+    JAEGER_OTLP_ENDPOINT: Optional[str] = None
+    LANGFUSE_PUBLIC_KEY: Optional[str] = None
+    LANGFUSE_SECRET_KEY: Optional[str] = None
+    LANGFUSE_HOST: str = "https://cloud.langfuse.com"
+    ENABLE_OBSERVABILITY: bool = True
+
     # Security Settings
     # Generate a secure key for production; this is a default fallback for local dev
     JWT_SECRET_KEY: str = "supersecretfallbackkeyforlocaldevelopmentonly"
