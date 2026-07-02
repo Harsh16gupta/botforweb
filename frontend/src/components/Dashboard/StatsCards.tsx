@@ -1,27 +1,52 @@
 import type { DocumentItem, Organization } from '../../services/api';
-import { FileText, Hourglass, CreditCard, ChevronUp } from 'lucide-react';
+import { FileText, Hourglass, CreditCard } from 'lucide-react';
 
 interface StatsCardsProps {
   documents: DocumentItem[];
   org: Organization | null;
+  docsLoading?: boolean;
 }
 
-export default function StatsCards({ documents, org }: StatsCardsProps) {
+export default function StatsCards({ documents, org, docsLoading = false }: StatsCardsProps) {
   const activeCount = documents.filter(d => d.status === 'active').length;
   const processingCount = documents.filter(d => d.status === 'processing').length;
+
+  if (docsLoading && documents.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+        <div className="grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="skeleton" style={{ width: '90px', height: '12px', borderRadius: 'var(--radius-sm)' }} />
+                <div className="skeleton" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
+              </div>
+              <div className="skeleton" style={{ width: '50px', height: '28px', borderRadius: 'var(--radius-sm)', marginTop: '4px' }} />
+              <div className="skeleton" style={{ width: '120px', height: '10px', borderRadius: 'var(--radius-sm)', marginTop: '2px' }} />
+            </div>
+          ))}
+        </div>
+
+        {/* Sparkline placeholder */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div className="skeleton" style={{ width: '180px', height: '12px', borderRadius: 'var(--radius-sm)' }} />
+            <div className="skeleton" style={{ width: '100px', height: '12px', borderRadius: 'var(--radius-sm)' }} />
+          </div>
+          <div className="skeleton" style={{ height: '40px', width: '100%', borderRadius: 'var(--radius-md)' }} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
       
       {/* Metric Cards Row */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(3, 1fr)', 
-        gap: '16px' 
-      }}>
+      <div className="grid-cols-3">
         
         {/* Active Documents */}
-        <div className="card card-hover" style={{ padding: '20px' }}>
+        <div className="card card-hover">
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -47,20 +72,14 @@ export default function StatsCards({ documents, org }: StatsCardsProps) {
           </div>
           <div className="text-xs" style={{ 
             color: 'var(--text-secondary)', 
-            marginTop: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px'
+            marginTop: '4px'
           }}>
-            <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center' }}>
-              <ChevronUp size={12} /> {activeCount > 0 ? `+${activeCount}` : '0'}
-            </span>
-            <span>this week</span>
+            Available for search queries
           </div>
         </div>
 
         {/* Ingestion Queue */}
-        <div className="card card-hover" style={{ padding: '20px' }}>
+        <div className="card card-hover">
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -102,12 +121,12 @@ export default function StatsCards({ documents, org }: StatsCardsProps) {
             color: 'var(--text-secondary)', 
             marginTop: '4px' 
           }}>
-            {processingCount > 0 ? 'Workers processing files' : 'All systems idle'}
+            {processingCount > 0 ? 'Workers processing files' : 'All systems synchronized'}
           </div>
         </div>
 
         {/* Subscription / Plan info */}
-        <div className="card card-hover" style={{ padding: '20px' }}>
+        <div className="card card-hover">
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -119,7 +138,7 @@ export default function StatsCards({ documents, org }: StatsCardsProps) {
               textTransform: 'uppercase', 
               letterSpacing: '0.05em' 
             }}>
-              Tenant Plan
+              Tenant Workspace
             </span>
             <CreditCard size={16} style={{ color: 'var(--text-tertiary)' }} />
           </div>
@@ -132,7 +151,7 @@ export default function StatsCards({ documents, org }: StatsCardsProps) {
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}>
-            {org?.name || 'Loading plan...'}
+            {org?.name || 'Loading organization...'}
           </div>
           <div className="text-xs" style={{ 
             color: 'var(--text-secondary)', 
@@ -158,7 +177,7 @@ export default function StatsCards({ documents, org }: StatsCardsProps) {
             textTransform: 'uppercase', 
             letterSpacing: '0.05em' 
           }}>
-            7-Day Ingestion Activity (Quiet Data)
+            7-Day Ingestion Activity
           </span>
           <span className="text-xs" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
             daily volume metrics
@@ -192,6 +211,7 @@ export default function StatsCards({ documents, org }: StatsCardsProps) {
             <path 
               d="M0,32 Q60,18 120,28 T240,12 T360,25 T480,5 T600,18 T720,28 T840,15 T960,30 T1080,8 L1080,40 L0,40 Z" 
               fill="url(#sparklineGrad)" 
+              style={{ transition: 'fill var(--transition-normal)' }}
             />
             {/* Soft dot on end of sparkline */}
             <circle cx="1080" cy="8" r="3" fill="var(--text-secondary)" />

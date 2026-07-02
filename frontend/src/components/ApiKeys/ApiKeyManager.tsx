@@ -31,6 +31,7 @@ export default function ApiKeyManager({ org, showToast }: ApiKeyManagerProps) {
   const [assistantName, setAssistantName] = useState('Docs Assistant');
   const [logoUrl, setLogoUrl] = useState('');
   const [isWidgetPreviewOpen, setIsWidgetPreviewOpen] = useState(true);
+  const [isConfirmRegenOpen, setIsConfirmRegenOpen] = useState(false);
 
   const presetColors = ['#111111', '#2563eb', '#16a34a', '#dc2626', '#d97706', '#7c3aed'];
 
@@ -108,7 +109,7 @@ print(response.json()["answer"])`,
             </p>
           </div>
           <button 
-            onClick={() => showToast('API key regeneration is restricted in preview mode.', 'error')}
+            onClick={() => setIsConfirmRegenOpen(true)}
             className="btn btn-secondary btn-sm"
             style={{ fontSize: '11px', height: '28px', color: 'var(--danger)' }}
           >
@@ -474,6 +475,63 @@ print(response.json()["answer"])`,
           </div>
         </div>
       </div>
+
+      {/* Custom Key Regeneration Warning Modal */}
+      {isConfirmRegenOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1010 }}>
+          <div className="modal-content" style={{ maxWidth: '420px', padding: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--danger-bg)',
+                color: 'var(--danger)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <RotateCw size={20} />
+              </div>
+              
+              <div>
+                <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Regenerate API Key
+                </h3>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.5' }}>
+                  Are you sure you want to regenerate your API Key? All existing client widgets and integrations using this key will fail immediately. This action cannot be undone.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                <button
+                  onClick={() => setIsConfirmRegenOpen(false)}
+                  className="btn btn-secondary"
+                  style={{ height: '34px', fontSize: '12px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setIsConfirmRegenOpen(false);
+                    showToast('API key regeneration is restricted in preview mode.', 'error');
+                  }}
+                  className="btn btn-danger"
+                  style={{ 
+                    height: '34px', 
+                    fontSize: '12px', 
+                    background: 'var(--danger)', 
+                    borderColor: 'var(--danger)',
+                    color: 'var(--text-inverse)'
+                  }}
+                >
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

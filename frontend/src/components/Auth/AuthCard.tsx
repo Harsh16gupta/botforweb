@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../../services/api';
-import { AlertTriangle, Command, MessageSquare, Clock, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Command, MessageSquare, Clock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 interface AuthCardProps {
   onAuthSuccess: (token: string) => void;
@@ -14,6 +14,12 @@ export default function AuthCard({ onAuthSuccess, showToast }: AuthCardProps) {
   const [orgName, setOrgName] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const isEmailError = authError.toLowerCase().includes('email') || authError.toLowerCase().includes('user');
+  const isPasswordError = authError.toLowerCase().includes('password');
+  const isOrgError = authError.toLowerCase().includes('organization') || authError.toLowerCase().includes('org');
+  const genericError = !isEmailError && !isPasswordError && !isOrgError ? authError : '';
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,73 +90,127 @@ export default function AuthCard({ onAuthSuccess, showToast }: AuthCardProps) {
           </div>
 
           <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {!isLogin && (
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Organization Name</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  placeholder="Acme Corporation"
-                  required
-                />
-              </div>
-            )}
+             {/* Keyframes style block for loading spinner */}
+             <style>{`
+               @keyframes auth-spin {
+                 to { transform: rotate(360deg); }
+               }
+               .auth-spinner {
+                 animation: auth-spin 0.8s linear infinite;
+               }
+             `}</style>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Email Address</label>
-              <input 
-                type="email" 
-                className="form-input" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@work.com"
-                required
-              />
-            </div>
+             {!isLogin && (
+               <div className="form-group" style={{ marginBottom: 0 }}>
+                 <label className="form-label">Organization Name</label>
+                 <input 
+                   type="text" 
+                   className="form-input" 
+                   value={orgName}
+                   onChange={(e) => setOrgName(e.target.value)}
+                   placeholder="Acme Corporation"
+                   required
+                 />
+                 {isOrgError && (
+                   <span style={{ color: 'var(--danger)', fontSize: '11px', marginTop: '2px', fontWeight: 500 }}>
+                     {authError}
+                   </span>
+                 )}
+               </div>
+             )}
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Password</label>
-              <input 
-                type="password" 
-                className="form-input" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
+             <div className="form-group" style={{ marginBottom: 0 }}>
+               <label className="form-label">Email Address</label>
+               <input 
+                 type="email" 
+                 className="form-input" 
+                 value={email}
+                 onChange={(e) => setEmail(e.target.value)}
+                 placeholder="you@work.com"
+                 required
+               />
+               {isEmailError && (
+                 <span style={{ color: 'var(--danger)', fontSize: '11px', marginTop: '2px', fontWeight: 500 }}>
+                   {authError}
+                 </span>
+               )}
+             </div>
 
-            {/* Error Banner */}
-            {authError && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-                background: 'var(--danger-bg)',
-                color: 'var(--danger)',
-                border: '1px solid rgba(220, 38, 38, 0.15)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px 12px',
-                fontSize: '12px',
-                fontWeight: 500,
-                lineHeight: '1.4',
-                marginTop: '4px'
-              }}>
-                <AlertTriangle size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
-                <span>{authError}</span>
-              </div>
-            )}
+             <div className="form-group" style={{ marginBottom: 0 }}>
+               <label className="form-label">Password</label>
+               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                 <input 
+                   type={showPassword ? 'text' : 'password'} 
+                   className="form-input" 
+                   value={password}
+                   onChange={(e) => setPassword(e.target.value)}
+                   placeholder="••••••••"
+                   required
+                   style={{ paddingRight: '40px' }}
+                 />
+                 <button
+                   type="button"
+                   onClick={() => setShowPassword(!showPassword)}
+                   className="btn btn-ghost"
+                   style={{
+                     position: 'absolute',
+                     right: '6px',
+                     padding: 0,
+                     width: '28px',
+                     height: '28px',
+                     borderRadius: 'var(--radius-sm)'
+                   }}
+                   title={showPassword ? "Hide password" : "Show password"}
+                 >
+                   {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                 </button>
+               </div>
+               {isPasswordError && (
+                 <span style={{ color: 'var(--danger)', fontSize: '11px', marginTop: '2px', fontWeight: 500 }}>
+                   {authError}
+                 </span>
+               )}
+             </div>
 
-            <button 
-              type="submit" 
-              className="btn btn-primary btn-lg"
-              style={{ width: '100%', marginTop: '8px' }}
-              disabled={authLoading}
-            >
-              {authLoading ? 'Signing in...' : isLogin ? 'Sign In' : 'Create Account'}
-            </button>
+             {/* Generic Error Banner */}
+             {genericError && (
+               <div style={{
+                 display: 'flex',
+                 alignItems: 'flex-start',
+                 gap: '8px',
+                 background: 'var(--danger-bg)',
+                 color: 'var(--danger)',
+                 border: '1px solid rgba(220, 38, 38, 0.15)',
+                 borderRadius: 'var(--radius-md)',
+                 padding: '10px 12px',
+                 fontSize: '12px',
+                 fontWeight: 500,
+                 lineHeight: '1.4',
+                 marginTop: '4px'
+               }}>
+                 <AlertTriangle size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
+                 <span>{genericError}</span>
+               </div>
+             )}
+
+             <button 
+               type="submit" 
+               className="btn btn-primary btn-lg"
+               style={{ width: '100%', marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+               disabled={authLoading}
+             >
+               {authLoading && (
+                 <span className="auth-spinner" style={{ 
+                   display: 'inline-block', 
+                   width: '14px', 
+                   height: '14px', 
+                   border: '2px solid currentColor', 
+                   borderTopColor: 'transparent', 
+                   borderRadius: '50%' 
+                 }} />
+               )}
+               <span>{authLoading ? (isLogin ? 'Signing in...' : 'Registering...') : isLogin ? 'Sign In' : 'Create Account'}</span>
+             </button>
           </form>
 
           {/* Mode Switcher */}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { User } from '../../services/api';
 import { 
   FileText, 
@@ -6,7 +7,10 @@ import {
   LogOut, 
   ChevronLeft, 
   ChevronRight, 
-  Command 
+  Command,
+  MoreHorizontal,
+  User as UserIcon,
+  HelpCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -16,6 +20,8 @@ interface SidebarProps {
   onLogout: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  isMobileOpen: boolean;
+  onCloseMobile: () => void;
 }
 
 export default function Sidebar({ 
@@ -24,9 +30,13 @@ export default function Sidebar({
   setActiveTab, 
   onLogout,
   isCollapsed,
-  onToggleCollapse
+  onToggleCollapse,
+  isMobileOpen,
+  onCloseMobile
 }: SidebarProps) {
   
+  const [isFooterMenuOpen, setIsFooterMenuOpen] = useState(false);
+
   const navItems = [
     {
       id: 'documents' as const,
@@ -46,20 +56,23 @@ export default function Sidebar({
   ];
 
   return (
-    <div style={{ 
-      width: isCollapsed ? '64px' : '240px', 
-      background: 'var(--bg-surface)', 
-      borderRight: '1px solid var(--border-default)', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      padding: isCollapsed ? '16px 8px' : '24px 16px',
-      height: '100vh',
-      position: 'sticky',
-      top: 0,
-      transition: 'width 180ms ease, padding 180ms ease',
-      zIndex: 100,
-      justifyContent: 'space-between'
-    }}>
+    <div 
+      className={`sidebar-container ${isMobileOpen ? 'mobile-open' : ''}`}
+      style={{ 
+        width: isCollapsed ? '64px' : '240px', 
+        background: 'var(--bg-surface)', 
+        borderRight: '1px solid var(--border-default)', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        padding: isCollapsed ? '16px 8px' : '24px 16px',
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        transition: 'width var(--transition-normal), padding var(--transition-normal), transform var(--transition-normal)',
+        zIndex: 1000,
+        justifyContent: 'space-between'
+      }}
+    >
       {/* Top Section: Logo & Nav */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
         
@@ -103,14 +116,15 @@ export default function Sidebar({
             const isActive = activeTab === item.id;
             const Icon = item.icon;
             
-            return (
+            const buttonMarkup = (
               <button 
                 key={item.id}
-                onClick={() => setActiveTab(item.id)} 
-                className="btn"
+                onClick={() => {
+                  setActiveTab(item.id);
+                  onCloseMobile();
+                }} 
+                className={`btn sidebar-nav-item ${isActive ? 'active' : ''}`}
                 style={{ 
-                  background: isActive ? 'var(--bg-subtle)' : 'transparent',
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                   justifyContent: isCollapsed ? 'center' : 'flex-start',
                   width: '100%', 
                   padding: '8px 12px',
@@ -118,36 +132,40 @@ export default function Sidebar({
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '13px',
                   fontWeight: 500,
-                  transition: 'background 120ms ease, color 120ms ease',
                   border: 'none',
-                  boxShadow: 'none'
+                  boxShadow: 'none',
+                  background: 'transparent'
                 }}
-                onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(244, 244, 245, 0.6)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-                title={isCollapsed ? item.label : undefined}
               >
                 <Icon 
                   size={16} 
                   strokeWidth={isActive ? 2 : 1.75} 
                   fill={isActive && item.id !== 'api_keys' ? 'currentColor' : 'none'}
                   style={{ 
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    color: 'inherit',
                     flexShrink: 0
                   }} 
                 />
                 {!isCollapsed && <span>{item.label}</span>}
               </button>
             );
+
+            if (isCollapsed) {
+              return (
+                <div key={item.id} className="tooltip-container tooltip-right" style={{ width: '100%' }}>
+                  {buttonMarkup}
+                  <div className="tooltip-content">{item.label}</div>
+                </div>
+              );
+            }
+
+            return buttonMarkup;
           })}
         </nav>
       </div>
 
       {/* Bottom Section: Profile & Collapse Button */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
         
         {/* User Card */}
         <div style={{ 
@@ -158,8 +176,8 @@ export default function Sidebar({
           gap: '12px' 
         }}>
           {!isCollapsed ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                 {/* Avatar circle */}
                 <div style={{
                   width: '28px',
@@ -172,12 +190,13 @@ export default function Sidebar({
                   justifyContent: 'center',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: 'var(--text-primary)'
+                  color: 'var(--text-primary)',
+                  flexShrink: 0
                 }}>
                   {user?.email ? user.email.slice(0, 2).toUpperCase() : 'US'}
                 </div>
                 
-                <div style={{ overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                <div style={{ overflow: 'hidden', minWidth: 0 }}>
                   <div style={{ 
                     fontSize: '12px', 
                     fontWeight: 500, 
@@ -188,29 +207,23 @@ export default function Sidebar({
                   }}>
                     {user?.email}
                   </div>
-                  <div style={{ 
-                    fontSize: '10px', 
-                    color: 'var(--text-tertiary)', 
-                    fontFamily: 'var(--font-mono)',
-                    marginTop: '1px'
-                  }}>
-                    Org ID: {user?.organization_id}
-                  </div>
                 </div>
               </div>
-              
-              <button 
-                onClick={onLogout} 
-                className="btn btn-secondary btn-sm" 
-                style={{ width: '100%', height: '32px' }}
+
+              {/* Popup trigger */}
+              <button
+                onClick={() => setIsFooterMenuOpen(!isFooterMenuOpen)}
+                className="btn btn-ghost"
+                style={{ padding: 0, width: '24px', height: '24px', borderRadius: 'var(--radius-sm)' }}
+                aria-label="User account settings"
               >
-                <LogOut size={13} />
-                <span>Logout</span>
+                <MoreHorizontal size={14} />
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div 
+                onClick={() => setIsFooterMenuOpen(!isFooterMenuOpen)}
                 style={{
                   width: '28px',
                   height: '28px',
@@ -225,20 +238,72 @@ export default function Sidebar({
                   color: 'var(--text-primary)',
                   cursor: 'pointer'
                 }}
-                title={`${user?.email} (Org: ${user?.organization_id})`}
+                title={user?.email || 'User settings'}
               >
                 {user?.email ? user.email.slice(0, 2).toUpperCase() : 'US'}
               </div>
-              
-              <button 
-                onClick={onLogout} 
-                className="btn btn-secondary btn-sm" 
-                style={{ width: '32px', height: '32px', padding: 0 }}
-                title="Logout"
-              >
-                <LogOut size={13} />
-              </button>
             </div>
+          )}
+
+          {/* Unified Popup Footer Menu */}
+          {isFooterMenuOpen && (
+            <>
+              <div onClick={() => setIsFooterMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 98 }} />
+              <div style={{
+                position: 'absolute',
+                left: isCollapsed ? '52px' : '0',
+                bottom: '48px',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-popover)',
+                width: '180px',
+                padding: '4px',
+                zIndex: 99,
+                animation: 'modal-enter 120ms ease-out',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px'
+              }}>
+                <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border-default)', marginBottom: '4px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user?.email}
+                  </p>
+                  <p style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                    Org ID: {user?.organization_id}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => { setIsFooterMenuOpen(false); alert('Profile settings opened'); }}
+                  className="btn btn-ghost"
+                  style={{ height: '30px', width: '100%', fontSize: '12px', justifyContent: 'flex-start', padding: '0 8px', border: 'none' }}
+                >
+                  <UserIcon size={12} />
+                  Profile Settings
+                </button>
+
+                <button
+                  onClick={() => { setIsFooterMenuOpen(false); alert('Help resources opened'); }}
+                  className="btn btn-ghost"
+                  style={{ height: '30px', width: '100%', fontSize: '12px', justifyContent: 'flex-start', padding: '0 8px', border: 'none' }}
+                >
+                  <HelpCircle size={12} />
+                  Help & Support
+                </button>
+
+                <div style={{ height: '1px', background: 'var(--border-default)', margin: '4px 0' }} />
+
+                <button
+                  onClick={() => { setIsFooterMenuOpen(false); onLogout(); }}
+                  className="btn btn-ghost"
+                  style={{ height: '30px', width: '100%', fontSize: '12px', justifyContent: 'flex-start', padding: '0 8px', color: 'var(--danger)', border: 'none' }}
+                >
+                  <LogOut size={12} />
+                  Logout
+                </button>
+              </div>
+            </>
           )}
         </div>
 

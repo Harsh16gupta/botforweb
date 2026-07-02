@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { api } from '../../services/api';
 import type { DocumentItem } from '../../services/api';
 import { 
@@ -24,6 +24,8 @@ interface DocumentManagerProps {
   docsLoading: boolean;
   fetchDocuments: (silent?: boolean) => void;
   showToast: (message: string, type?: 'success' | 'error') => void;
+  initialSearchQuery?: string;
+  clearInitialSearchQuery?: () => void;
 }
 
 interface QueuedFile {
@@ -39,7 +41,9 @@ export default function DocumentManager({
   documents, 
   docsLoading, 
   fetchDocuments, 
-  showToast 
+  showToast,
+  initialSearchQuery,
+  clearInitialSearchQuery
 }: DocumentManagerProps) {
   
   // State
@@ -55,6 +59,26 @@ export default function DocumentManager({
   
   // Dropdown menu state per row
   const [activeKebabDocId, setActiveKebabDocId] = useState<number | null>(null);
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirmState, setDeleteConfirmState] = useState<{
+    isOpen: boolean;
+    type: 'single' | 'bulk';
+    docId?: number;
+    docName?: string;
+  }>({
+    isOpen: false,
+    type: 'single'
+  });
+
+  // initialSearchQuery router hook
+  useEffect(() => {
+    if (initialSearchQuery) {
+      setSearchQuery(initialSearchQuery);
+      setCurrentPage(1);
+      if (clearInitialSearchQuery) clearInitialSearchQuery();
+    }
+  }, [initialSearchQuery]);
 
   // Uploader queue state
   const [uploadQueue, setUploadQueue] = useState<QueuedFile[]>([]);
@@ -153,17 +177,38 @@ export default function DocumentManager({
     const validExtensions = ['.pdf', '.md', '.zip'];
     const newQueued: QueuedFile[] = [];
 
-    files.forEach(file => {
+    const currentTotal = uploadQueue.length;
+    if (currentTotal + files.length > 5) {
+      showToast(`Batch exceeds maximum of 5 files. Only the first ${5 - currentTotal} files were added.`, 'error');
+    }
+
+    files.slice(0, Math.max(0, 5 - currentTotal)).forEach(file => {
       const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-      if (validExtensions.includes(extension)) {
+      const sizeMB = file.size / 1024 / 1024;
+      
+      if (!validExtensions.includes(extension)) {
+        newQueued.push({
+          id: Math.random().toString(36).substring(2, 9),
+          file,
+          progress: 0,
+          status: 'failed',
+          error: 'Only .pdf, .md, or .zip supported'
+        });
+      } else if (sizeMB > 25) {
+        newQueued.push({
+          id: Math.random().toString(36).substring(2, 9),
+          file,
+          progress: 0,
+          status: 'failed',
+          error: `Exceeds 25MB limit (${sizeMB.toFixed(1)}MB)`
+        });
+      } else {
         newQueued.push({
           id: Math.random().toString(36).substring(2, 9),
           file,
           progress: 0,
           status: 'queued'
         });
-      } else {
-        showToast(`Skipped ${file.name}: Only .pdf, .md, and .zip files supported.`, 'error');
       }
     });
 
@@ -226,38 +271,55 @@ export default function DocumentManager({
     fetchDocuments(true);
   };
 
-  const handleSingleDelete = async (docId: number) => {
-    if (!confirm('Are you sure you want to delete this document? This will remove all associated vector embeddings.')) return;
-    try {
-      await api.deleteDocument(token, docId);
-      showToast('Document deleted');
-      setSelectedDocIds(prev => prev.filter(id => id !== docId));
-      fetchDocuments(true);
-    } catch (err: any) {
-      showToast(err.message || 'Delete failed', 'error');
-    }
+  const handleSingleDelete = (docId: number) => {
+    const doc = documents.find(d => d.id === docId);
+    setDeleteConfirmState({
+      isOpen: true,
+      type: 'single',
+      docId,
+      docName: doc?.filename || 'this document'
+    });
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedDocIds.length === 0) return;
-    if (!confirm(`Are you sure you want to delete the ${selectedDocIds.length} selected documents?`)) return;
+    setDeleteConfirmState({
+      isOpen: true,
+      type: 'bulk'
+    });
+  };
 
-    const idsToDelete = [...selectedDocIds];
-    setSelectedDocIds([]); // Clear selection
-    showToast(`Deleting ${idsToDelete.length} documents...`);
+  const confirmDelete = async () => {
+    const { type, docId } = deleteConfirmState;
+    setDeleteConfirmState(prev => ({ ...prev, isOpen: false }));
 
-    let successCount = 0;
-    for (const docId of idsToDelete) {
+    if (type === 'single' && docId !== undefined) {
       try {
         await api.deleteDocument(token, docId);
-        successCount++;
-      } catch (err) {
-        console.error(`Failed to delete document ${docId}`, err);
+        showToast('Document deleted');
+        setSelectedDocIds(prev => prev.filter(id => id !== docId));
+        fetchDocuments(true);
+      } catch (err: any) {
+        showToast(err.message || 'Delete failed', 'error');
       }
-    }
+    } else if (type === 'bulk') {
+      const idsToDelete = [...selectedDocIds];
+      setSelectedDocIds([]); // Clear selection
+      showToast(`Deleting ${idsToDelete.length} documents...`);
 
-    showToast(`Successfully deleted ${successCount} documents`);
-    fetchDocuments(true);
+      let successCount = 0;
+      for (const id of idsToDelete) {
+        try {
+          await api.deleteDocument(token, id);
+          successCount++;
+        } catch (err) {
+          console.error(`Failed to delete document ${id}`, err);
+        }
+      }
+
+      showToast(`Successfully deleted ${successCount} of ${idsToDelete.length} documents`);
+      fetchDocuments(true);
+    }
   };
 
   const toggleSelectAll = () => {
@@ -404,8 +466,45 @@ export default function DocumentManager({
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         
         {docsLoading && documents.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <div className="animate-pulse-opacity text-sm font-medium">Loading indexed metadata...</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ 
+                  background: 'var(--bg-app)', 
+                  borderBottom: '1px solid var(--border-default)',
+                  height: '38px'
+                }}>
+                  <th style={{ width: '40px', padding: '0 16px' }} />
+                  <th style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '10px 16px' }}>Filename</th>
+                  <th style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '10px 16px', width: '100px' }}>Type</th>
+                  <th style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '10px 16px', width: '140px' }}>Status</th>
+                  <th style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '10px 16px', width: '150px' }}>Uploaded</th>
+                  <th style={{ width: '60px', padding: '0 16px' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i} style={{ height: '46px', borderBottom: '1px solid var(--border-default)' }}>
+                    <td style={{ padding: '0 16px' }}>
+                      <div className="skeleton" style={{ width: '13px', height: '13px', borderRadius: '3px' }} />
+                    </td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <div className="skeleton" style={{ width: `${140 + (i % 3) * 40}px`, height: '14px', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <div className="skeleton" style={{ width: '40px', height: '16px', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <div className="skeleton" style={{ width: '65px', height: '16px', borderRadius: 'var(--radius-full)' }} />
+                    </td>
+                    <td style={{ padding: '10px 16px' }}>
+                      <div className="skeleton" style={{ width: '70px', height: '12px', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '0 16px' }} />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : filteredAndSortedDocs.length === 0 ? (
           /* Empty State */
@@ -737,22 +836,42 @@ export default function DocumentManager({
               Showing {Math.min(filteredAndSortedDocs.length, (currentPage - 1) * itemsPerPage + 1)}–
               {Math.min(filteredAndSortedDocs.length, currentPage * itemsPerPage)} of {filteredAndSortedDocs.length}
             </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
               <button
                 className="btn btn-secondary btn-sm"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                style={{ padding: '0 8px' }}
+                style={{ padding: '0 8px', borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={13} />
               </button>
+              
+              {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ 
+                    height: '32px',
+                    padding: '0 10px',
+                    fontSize: '11px',
+                    borderRadius: 0,
+                    borderLeft: 'none',
+                    boxShadow: 'none'
+                  }}
+                >
+                  {page}
+                </button>
+              ))}
+
               <button
                 className="btn btn-secondary btn-sm"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                style={{ padding: '0 8px' }}
+                style={{ padding: '0 8px', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: 'none' }}
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={13} />
               </button>
             </div>
           </div>
@@ -814,7 +933,7 @@ export default function DocumentManager({
                     Drag files here or click to browse
                   </p>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    PDF, Markdown, or ZIP — up to 25MB
+                    PDF, Markdown, or ZIP — Max 5 files · Up to 25MB each
                   </p>
                 </div>
               </div>
@@ -823,7 +942,7 @@ export default function DocumentManager({
             {/* Upload Queue Rows */}
             {uploadQueue.length > 0 && (
               <div style={{ 
-                maxHeight: '160px', 
+                maxHeight: '180px', 
                 overflowY: 'auto', 
                 display: 'flex', 
                 flexDirection: 'column', 
@@ -846,15 +965,22 @@ export default function DocumentManager({
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span 
-                        className="text-xs font-medium" 
-                        style={{ color: 'var(--text-primary)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                        title={item.file.name}
-                      >
-                        {item.file.name}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
+                        <span 
+                          className="text-xs font-medium" 
+                          style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          title={item.file.name}
+                        >
+                          {item.file.name}
+                        </span>
+                        {item.status === 'failed' && item.error && (
+                          <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: 500 }}>
+                            {item.error}
+                          </span>
+                        )}
+                      </div>
                       
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                         <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                           {(item.file.size / 1024 / 1024).toFixed(2)} MB
                         </span>
@@ -905,6 +1031,66 @@ export default function DocumentManager({
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Custom Destructive Deletion Confirmation Modal */}
+      {deleteConfirmState.isOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '420px', padding: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--danger-bg)',
+                color: 'var(--danger)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Trash2 size={20} />
+              </div>
+              
+              <div>
+                <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {deleteConfirmState.type === 'single' ? 'Delete document' : 'Delete documents'}
+                </h3>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.5' }}>
+                  {deleteConfirmState.type === 'single' ? (
+                    <>Are you sure you want to delete <strong>{deleteConfirmState.docName}</strong>? This will permanently remove all associated vector embeddings.</>
+                  ) : (
+                    <>Are you sure you want to delete the <strong>{selectedDocIds.length}</strong> selected documents? This will permanently remove all associated vector embeddings and cannot be undone.</>
+                  )}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                <button
+                  onClick={() => setDeleteConfirmState(prev => ({ ...prev, isOpen: false }))}
+                  className="btn btn-secondary"
+                  style={{ height: '34px', fontSize: '12px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="btn btn-danger"
+                  style={{ 
+                    height: '34px', 
+                    fontSize: '12px', 
+                    background: 'var(--danger)', 
+                    borderColor: 'var(--danger)',
+                    color: 'var(--text-inverse)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--danger)'}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

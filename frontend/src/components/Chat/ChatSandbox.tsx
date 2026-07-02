@@ -8,10 +8,9 @@ import {
   Clock, 
   Send, 
   AlertTriangle, 
-  ChevronDown, 
-  ChevronUp, 
   BookOpen, 
-  HelpCircle 
+  HelpCircle,
+  X
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -20,9 +19,17 @@ interface ChatSandboxProps {
   token: string;
   org: Organization | null;
   showToast: (message: string, type?: 'success' | 'error') => void;
+  initialActiveConvId?: number | null;
+  clearInitialActiveConvId?: () => void;
 }
 
-export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps) {
+export default function ChatSandbox({ 
+  token, 
+  org, 
+  showToast,
+  initialActiveConvId,
+  clearInitialActiveConvId
+}: ChatSandboxProps) {
   // Conversations list state
   const [conversations, setConversations] = useState<ConversationResponse[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(false);
@@ -39,7 +46,9 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
   
   // Custom tracking for citations and warnings of the active turn
   const [lastTurnCitations, setLastTurnCitations] = useState<Record<number, Citation[]>>({});
-  const [expandedCitationId, setExpandedCitationId] = useState<string | null>(null);
+  
+  // Active selected citation for slide drawer panel
+  const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +60,14 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
   useEffect(() => {
     scrollToBottom();
   }, [messages, chatLoading]);
+
+  // initialActiveConvId effect router hook
+  useEffect(() => {
+    if (initialActiveConvId !== undefined && initialActiveConvId !== null) {
+      selectConversation(initialActiveConvId);
+      if (clearInitialActiveConvId) clearInitialActiveConvId();
+    }
+  }, [initialActiveConvId]);
 
   // Load conversations list
   const loadConversations = async (silent = false) => {
@@ -77,10 +94,10 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
   const selectConversation = async (conversationId: number) => {
     setActiveConversationId(conversationId);
     setMessagesLoading(true);
+    setActiveCitation(null);
     try {
       const data = await api.getConversation(token, conversationId);
       setMessages(data.messages || []);
-      // Map existing citations if present
       setLastTurnCitations({});
     } catch (err: any) {
       showToast(err.message || 'Failed to load messages', 'error');
@@ -95,6 +112,7 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
     setMessages([]);
     setChatInput('');
     setLastTurnCitations({});
+    setActiveCitation(null);
     showToast('Started new test sandbox conversation');
   };
 
@@ -105,6 +123,7 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
 
     const userQuery = chatInput;
     setChatInput('');
+    setActiveCitation(null);
     
     // Optimistic local state update for user message
     const tempUserMsg: Message = {
@@ -174,7 +193,7 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Custom code blocks renderer for markdown
+  // Custom code blocks renderer for markdown (permanently themed code background variables)
   const markdownComponents = {
     code({ node, inline, className, children, ...props }: any) {
       return inline ? (
@@ -183,13 +202,13 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
         </code>
       ) : (
         <pre style={{
-          background: '#18181b',
-          color: '#e4e4e7',
+          background: 'var(--bg-code-block)',
+          color: 'var(--text-code-block)',
           padding: '12px',
           borderRadius: 'var(--radius-md)',
           overflowX: 'auto',
           margin: '8px 0',
-          border: '1px solid var(--border-default)'
+          border: '1px solid var(--border-code-block)'
         }}>
           <code className="font-mono" style={{ fontSize: '12px' }} {...props}>
             {children}
@@ -268,8 +287,12 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
               Loading threads...
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '11px' }}>
-              No threads found
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '11px' }}>
+              {searchThreadQuery.trim() ? (
+                <>No threads match &ldquo;{searchThreadQuery}&rdquo;</>
+              ) : (
+                <>No conversations yet</>
+              )}
             </div>
           ) : (
             filteredConversations.map((conv) => {
@@ -278,6 +301,7 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
                 <button
                   key={conv.id}
                   onClick={() => selectConversation(conv.id)}
+                  className={`thread-list-item ${isActive ? 'active' : ''}`}
                   style={{
                     background: isActive ? 'var(--bg-subtle)' : 'transparent',
                     border: 'none',
@@ -290,12 +314,6 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '2px'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(244,244,245,0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
                   <span 
@@ -325,7 +343,9 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        background: 'var(--bg-surface)'
+        background: 'var(--bg-surface)',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
         {/* Chat Pane Header */}
         <div style={{
@@ -446,23 +466,29 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
                       /* Assistant turns */
                       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         
-                        {/* Hallucination Banner */}
+                        {/* Redesigned Hallucination Warning Banner */}
                         {isHallucinating && (
                           <div style={{
-                            background: 'var(--warning-bg)',
-                            border: '1px solid rgba(202, 138, 4, 0.15)',
+                            background: 'linear-gradient(90deg, var(--warning-bg), var(--bg-surface))',
+                            border: '1px solid rgba(202, 138, 4, 0.25)',
+                            borderLeft: '3px solid var(--warning)',
                             color: 'var(--warning)',
                             borderRadius: 'var(--radius-md)',
-                            padding: '8px 12px',
+                            padding: '10px 14px',
                             fontSize: '12px',
                             fontWeight: 500,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            marginBottom: '4px'
+                            gap: '10px',
+                            marginBottom: '6px',
+                            boxShadow: 'var(--shadow-xs)',
+                            animation: 'pulse-opacity 3.5s ease-in-out infinite'
                           }}>
-                            <AlertTriangle size={13} style={{ flexShrink: 0 }} />
-                            <span>This answer may contain unsupported details.</span>
+                            <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                              <span style={{ fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Zero-Hallucination Guard Warning</span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 400 }}>This answer contains details not cited in the indexed knowledge base. Verify carefully.</span>
+                            </div>
                           </div>
                         )}
 
@@ -516,28 +542,27 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
                               <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginRight: '2px' }}>·</span>
                               {msgCitations.map((citation, idx) => {
-                                const citationKey = `${msg.id}-${idx}`;
-                                const isExpanded = expandedCitationId === citationKey;
-                                
+                                const isSelected = activeCitation?.text === citation.text;
                                 return (
                                   <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <button
-                                      onClick={() => setExpandedCitationId(isExpanded ? null : citationKey)}
+                                      type="button"
+                                      onClick={() => setActiveCitation(isSelected ? null : citation)}
                                       className="btn btn-secondary"
                                       style={{
                                         height: '20px',
                                         padding: '0 8px',
                                         fontSize: '10px',
                                         borderRadius: 'var(--radius-full)',
-                                        background: 'var(--bg-muted)',
+                                        background: isSelected ? 'var(--bg-selected)' : 'var(--bg-muted)',
                                         border: '1px solid var(--border-default)',
                                         color: 'var(--text-secondary)',
-                                        gap: '3px'
+                                        gap: '3px',
+                                        transition: 'background var(--transition-fast)'
                                       }}
                                     >
                                       <BookOpen size={10} />
                                       {citation.filename}
-                                      {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                                     </button>
                                   </div>
                                 );
@@ -545,35 +570,6 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
                             </div>
                           )}
                         </div>
-
-                        {/* Inline Expandable Citation Text Panel */}
-                        {msgCitations.map((citation, idx) => {
-                          const citationKey = `${msg.id}-${idx}`;
-                          if (expandedCitationId !== citationKey) return null;
-                          
-                          return (
-                            <div 
-                              key={`panel-${idx}`}
-                              style={{
-                                background: 'var(--bg-subtle)',
-                                border: '1px solid var(--border-default)',
-                                borderRadius: 'var(--radius-md)',
-                                padding: '12px',
-                                marginTop: '4px',
-                                fontSize: '11px',
-                                fontFamily: 'var(--font-mono)',
-                                color: 'var(--text-secondary)',
-                                lineHeight: '1.5',
-                                animation: 'modal-enter 100ms ease-out'
-                              }}
-                            >
-                              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Source Excerpt from {citation.filename}:
-                              </div>
-                              <div style={{ whiteSpace: 'pre-wrap' }}>{citation.text}</div>
-                            </div>
-                          );
-                        })}
 
                       </div>
                     )}
@@ -667,7 +663,91 @@ export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps)
               <Send size={12} />
             </button>
           </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', padding: '0 4px' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+              {chatInput.length} characters {chatInput.length > 0 && `(approx. ${Math.ceil(chatInput.length / 4)} tokens)`}
+            </span>
+            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+              Press Shift + Enter for new line
+            </span>
+          </div>
         </form>
+
+        {/* Right-side Citation Slide-out Panel */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: '320px',
+          background: 'var(--bg-surface)',
+          borderLeft: '1px solid var(--border-default)',
+          boxShadow: 'var(--shadow-popover)',
+          transform: activeCitation ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform var(--transition-normal)',
+          zIndex: 100,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          {/* Drawer Header */}
+          <div style={{
+            padding: '16px',
+            borderBottom: '1px solid var(--border-default)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: 'var(--bg-app)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BookOpen size={14} style={{ color: 'var(--text-secondary)' }} />
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Citation Source
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveCitation(null)}
+              className="btn btn-ghost"
+              style={{ padding: '4px', height: '24px', width: '24px', borderRadius: 'var(--radius-sm)' }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Drawer Body */}
+          <div style={{ padding: '16px', overflowY: 'auto', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Document Filename</span>
+              <h4 className="text-xs font-medium" style={{ color: 'var(--text-primary)', marginTop: '2px', wordBreak: 'break-all' }}>
+                {activeCitation?.filename}
+              </h4>
+            </div>
+            
+            <div style={{ height: '1px', background: 'var(--border-default)' }} />
+            
+            <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '6px' }}>Source Excerpt Content</span>
+              <pre style={{
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--text-secondary)',
+                whiteSpace: 'pre-wrap',
+                lineHeight: '1.5',
+                overflowX: 'auto',
+                margin: 0,
+                flexGrow: 1
+              }}>
+                <code>{activeCitation?.text}</code>
+              </pre>
+            </div>
+          </div>
+        </div>
 
       </div>
 
