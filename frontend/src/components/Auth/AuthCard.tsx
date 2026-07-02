@@ -40,21 +40,20 @@ export default function AuthCard({ onAuthSuccess, showToast }: AuthCardProps) {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '40px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: 'var(--primary-color)' }}></div>
+    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#09090b' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '32px', position: 'relative', overflow: 'hidden' }}>
         
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px', marginBottom: '8px' }}>
-            botforweb <span style={{ color: 'var(--primary-color)' }}>SaaS</span>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', marginBottom: '6px', color: '#fafafa' }}>
+            botforweb
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
             {isLogin ? 'Sign in to manage your RAG chatbot' : 'Create an account for your organization'}
           </p>
         </div>
 
         {authError && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger-color)', borderRadius: '8px', padding: '12px', fontSize: '13px', marginBottom: '20px' }}>
+          <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger-color)', borderRadius: '6px', padding: '12px', fontSize: '13px', marginBottom: '20px', fontFamily: 'var(--font-mono)' }}>
             {authError}
           </div>
         )}
@@ -86,7 +85,7 @@ export default function AuthCard({ onAuthSuccess, showToast }: AuthCardProps) {
             />
           </div>
 
-          <div className="form-group" style={{ marginBottom: '28px' }}>
+          <div className="form-group" style={{ marginBottom: '24px' }}>
             <label className="form-label">Password</label>
             <input 
               type="password" 
@@ -101,21 +100,23 @@ export default function AuthCard({ onAuthSuccess, showToast }: AuthCardProps) {
           <button 
             type="submit" 
             className={`btn btn-primary ${authLoading ? 'btn-disabled' : ''}`}
-            style={{ width: '100%', padding: '12px' }}
+            style={{ width: '100%', padding: '10px', fontSize: '14px', fontWeight: 500 }}
             disabled={authLoading}
           >
             {authLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
           {isLogin ? (
             <>
               Don't have an account?{' '}
               <button 
                 type="button" 
                 onClick={() => { setIsLogin(false); setAuthError(''); }} 
-                style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 500, padding: 0 }}
+                style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 500, padding: 0, textDecoration: 'none' }}
+                onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
               >
                 Register organization
               </button>
@@ -126,7 +127,9 @@ export default function AuthCard({ onAuthSuccess, showToast }: AuthCardProps) {
               <button 
                 type="button" 
                 onClick={() => { setIsLogin(true); setAuthError(''); }} 
-                style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 500, padding: 0 }}
+                style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 500, padding: 0, textDecoration: 'none' }}
+                onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
               >
                 Sign In
               </button>

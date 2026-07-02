@@ -50,10 +50,10 @@ export default function DocumentManager({ token, documents, docsLoading, fetchDo
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', flexGrow: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flexGrow: 1 }}>
       
       {/* File Dropzone / Uploader */}
-      <div className="glass-panel" style={{ padding: '30px', textAlign: 'center', borderStyle: 'dashed', position: 'relative' }}>
+      <div className="uploader-area">
         <input 
           type="file" 
           ref={fileInputRef} 
@@ -63,38 +63,39 @@ export default function DocumentManager({ token, documents, docsLoading, fetchDo
         />
         
         <div style={{ margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
-            <svg style={{ width: '24px', height: '24px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+            <svg style={{ width: '20px', height: '20px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
           <div>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
-              Upload Documentation Files
+            <h3 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px', color: 'var(--text-primary)' }}>
+              Upload documentation files
             </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-              Drag and drop or click to choose .pdf, .md, or compressed .zip files.
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+              Drag and drop or click to choose PDF, Markdown, or ZIP files
             </p>
           </div>
           
           {uploadError && (
-            <div style={{ color: 'var(--danger-color)', fontSize: '13px' }}>{uploadError}</div>
+            <div style={{ color: 'var(--danger-color)', fontSize: '13px', fontFamily: 'var(--font-mono)' }}>{uploadError}</div>
           )}
 
           <button 
             onClick={() => fileInputRef.current?.click()} 
-            className={`btn btn-primary ${uploadLoading ? 'btn-disabled' : ''}`}
+            className={`btn btn-secondary ${uploadLoading ? 'btn-disabled' : ''}`}
             disabled={uploadLoading}
+            style={{ fontSize: '13px', padding: '6px 12px' }}
           >
-            {uploadLoading ? 'Uploading...' : 'Choose File'}
+            {uploadLoading ? 'Uploading...' : 'Select File'}
           </button>
         </div>
       </div>
 
       {/* Document List Table */}
       <div className="glass-panel" style={{ overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--panel-border)' }}>
-          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '16px', fontWeight: 600 }}>Indexed Knowledge</h3>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--panel-border)' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>Indexed Knowledge</h3>
         </div>
         
         {docsLoading && documents.length === 0 ? (
@@ -113,7 +114,7 @@ export default function DocumentManager({ token, documents, docsLoading, fetchDo
                 <th>Type</th>
                 <th>Status</th>
                 <th>Uploaded At</th>
-                <th style={{ width: '80px' }}>Action</th>
+                <th style={{ width: '80px', textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -121,7 +122,16 @@ export default function DocumentManager({ token, documents, docsLoading, fetchDo
                 <tr key={doc.id}>
                   <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{doc.filename}</td>
                   <td>
-                    <code style={{ textTransform: 'uppercase', background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', fontSize: '11px' }}>
+                    <code style={{ 
+                      textTransform: 'uppercase', 
+                      background: 'rgba(255, 255, 255, 0.04)', 
+                      border: '1px solid var(--panel-border)',
+                      padding: '2px 6px', 
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-mono)',
+                      borderRadius: '3px',
+                      color: 'var(--text-secondary)'
+                    }}>
                       {doc.file_type}
                     </code>
                   </td>
@@ -130,13 +140,16 @@ export default function DocumentManager({ token, documents, docsLoading, fetchDo
                       {doc.status}
                     </span>
                   </td>
-                  <td>{new Date(doc.created_at).toLocaleString()}</td>
-                  <td>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {new Date(doc.created_at).toLocaleString()}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
                     <button 
                       onClick={() => handleDeleteDocument(doc.id)} 
-                      className="btn btn-secondary" 
-                      style={{ padding: '6px 10px', color: 'var(--danger-color)', border: 'none', background: 'none' }}
+                      style={{ padding: '6px', color: 'var(--text-muted)', border: 'none', background: 'none', cursor: 'pointer', transition: 'color 0.15s ease' }}
                       title="Delete document"
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--danger-color)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                     >
                       <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

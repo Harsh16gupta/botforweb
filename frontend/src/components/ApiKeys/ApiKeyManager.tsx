@@ -8,12 +8,12 @@ interface ApiKeyManagerProps {
 
 export default function ApiKeyManager({ org, showToast }: ApiKeyManagerProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      <div className="glass-panel" style={{ padding: '30px' }}>
-        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="glass-panel" style={{ padding: '24px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', marginBottom: '6px', color: 'var(--text-primary)' }}>
           Public API Key
         </h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
           Use this key to authenticate queries originating from public web chat widgets. Keep it confidential.
         </p>
 
@@ -23,7 +23,7 @@ export default function ApiKeyManager({ org, showToast }: ApiKeyManagerProps) {
             className="form-input" 
             readOnly 
             value={org?.api_key || ''} 
-            style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.4)', fontSize: '15px' }}
+            style={{ fontFamily: 'var(--font-mono)', background: '#09090b', fontSize: '13px', border: '1px solid var(--panel-border)' }}
           />
           <button 
             onClick={() => {
@@ -33,6 +33,7 @@ export default function ApiKeyManager({ org, showToast }: ApiKeyManagerProps) {
               }
             }} 
             className="btn btn-secondary"
+            style={{ whiteSpace: 'nowrap', fontSize: '13px', padding: '8px 16px' }}
           >
             Copy Key
           </button>
@@ -40,20 +41,20 @@ export default function ApiKeyManager({ org, showToast }: ApiKeyManagerProps) {
       </div>
 
       {/* Embedding guide */}
-      <div className="glass-panel" style={{ padding: '30px' }}>
-        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
+      <div className="glass-panel" style={{ padding: '24px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', marginBottom: '12px', color: 'var(--text-primary)' }}>
           Widget Integration
         </h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '16px' }}>
           To query the chatbot programmatically, perform an HTTP POST request to the chat query API route:
         </p>
 
         <pre style={{
-          background: 'rgba(0, 0, 0, 0.4)',
-          padding: '16px 20px',
-          borderRadius: '8px',
+          background: '#09090b',
+          padding: '16px',
+          borderRadius: '6px',
           border: '1px solid var(--panel-border)',
-          fontFamily: 'monospace',
+          fontFamily: 'var(--font-mono)',
           fontSize: '13px',
           color: 'var(--text-primary)',
           overflowX: 'auto',

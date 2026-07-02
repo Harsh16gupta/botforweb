@@ -10,24 +10,30 @@ export default function StatsCards({ documents, org }: StatsCardsProps) {
   const processingCount = documents.filter(d => d.status === 'processing').length;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '40px' }}>
-      <div className="glass-panel" style={{ padding: '20px 24px' }}>
-        <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Documents</div>
-        <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', fontFamily: 'var(--font-heading)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
+      <div className="glass-panel" style={{ padding: '24px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+          Active Documents
+        </div>
+        <div style={{ fontSize: '24px', fontWeight: 600, marginTop: '8px', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
           {activeCount}
         </div>
       </div>
       
-      <div className="glass-panel" style={{ padding: '20px 24px' }}>
-        <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ingestion Queue</div>
-        <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>
+      <div className="glass-panel" style={{ padding: '24px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+          Ingestion Queue
+        </div>
+        <div style={{ fontSize: '24px', fontWeight: 600, marginTop: '8px', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
           {processingCount}
         </div>
       </div>
       
-      <div className="glass-panel" style={{ padding: '20px 24px' }}>
-        <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Organization Name</div>
-        <div style={{ fontSize: '20px', fontWeight: 600, marginTop: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-heading)' }}>
+      <div className="glass-panel" style={{ padding: '24px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+          Organization Name
+        </div>
+        <div style={{ fontSize: '18px', fontWeight: 600, marginTop: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
           {org?.name || 'Loading...'}
         </div>
       </div>

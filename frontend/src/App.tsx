@@ -101,24 +101,35 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#09090b' }}>
       {/* Toast Notification alert */}
       {notification && (
         <div style={{
           position: 'fixed',
-          top: '20px',
-          right: '20px',
+          top: '24px',
+          right: '24px',
           zIndex: 1000,
-          background: notification.type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          color: '#fff',
-          borderRadius: '8px',
-          padding: '12px 20px',
-          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(8px)',
+          background: '#18181b',
+          border: `1px solid ${notification.type === 'success' ? '#27272a' : '#ef4444'}`,
+          color: notification.type === 'success' ? '#fafafa' : '#ef4444',
+          borderRadius: '6px',
+          padding: '12px 16px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
           fontSize: '14px',
-          fontWeight: 500
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
+          {notification.type === 'success' ? (
+            <svg style={{ width: '16px', height: '16px', color: '#4ade80' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ) : (
+            <svg style={{ width: '16px', height: '16px', color: '#ef4444' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
           {notification.message}
         </div>
       )}
@@ -132,32 +143,46 @@ export default function App() {
       />
 
       {/* Main Workspace Frame */}
-      <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', padding: '40px', background: 'radial-gradient(circle at 100% 100%, #1e1b4b 0%, #030303 50%)' }}>
-        
-        {/* Top metrics bar */}
-        <StatsCards documents={documents} org={org} />
+      <div style={{ 
+        flexGrow: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        background: '#09090b',
+        overflowY: 'auto'
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '32px',
+          display: 'flex',
+          flexDirection: 'column',
+          flexGrow: 1
+        }}>
+          {/* Top metrics bar */}
+          <StatsCards documents={documents} org={org} />
 
-        {/* Tab content panel router */}
-        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-          {activeTab === 'documents' && (
-            <DocumentManager 
-              token={token} 
-              documents={documents} 
-              docsLoading={docsLoading} 
-              fetchDocuments={fetchDocuments} 
-              showToast={showToast} 
-            />
-          )}
+          {/* Tab content panel router */}
+          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            {activeTab === 'documents' && (
+              <DocumentManager 
+                token={token} 
+                documents={documents} 
+                docsLoading={docsLoading} 
+                fetchDocuments={fetchDocuments} 
+                showToast={showToast} 
+              />
+            )}
 
-          {activeTab === 'api_keys' && (
-            <ApiKeyManager org={org} showToast={showToast} />
-          )}
+            {activeTab === 'api_keys' && (
+              <ApiKeyManager org={org} showToast={showToast} />
+            )}
 
-          {activeTab === 'sandbox' && (
-            <ChatSandbox org={org} showToast={showToast} />
-          )}
+            {activeTab === 'sandbox' && (
+              <ChatSandbox org={org} showToast={showToast} />
+            )}
+          </div>
         </div>
-
       </div>
     </div>
   );
