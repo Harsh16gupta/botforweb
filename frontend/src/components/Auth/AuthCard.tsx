@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../../services/api';
+import { AlertTriangle, Command, MessageSquare, Clock, ShieldCheck } from 'lucide-react';
 
 interface AuthCardProps {
   onAuthSuccess: (token: string) => void;
@@ -40,103 +41,306 @@ export default function AuthCard({ onAuthSuccess, showToast }: AuthCardProps) {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#09090b' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '32px', position: 'relative', overflow: 'hidden' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', marginBottom: '6px', color: '#fafafa' }}>
-            botforweb
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-            {isLogin ? 'Sign in to manage your RAG chatbot' : 'Create an account for your organization'}
-          </p>
-        </div>
-
-        {authError && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger-color)', borderRadius: '6px', padding: '12px', fontSize: '13px', marginBottom: '20px', fontFamily: 'var(--font-mono)' }}>
-            {authError}
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)' }}>
+      
+      {/* Left Column (60%): Auth Forms */}
+      <div style={{
+        flex: '1 1 60%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '40px 60px',
+        maxWidth: '100%'
+      }}>
+        <div style={{ maxWidth: '360px', width: '100%', margin: '0 auto' }}>
+          
+          {/* Logo Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '40px' }}>
+            <div style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--bg-surface)'
+            }}>
+              <Command size={16} strokeWidth={2} />
+            </div>
+            <span style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+              botforweb
+            </span>
           </div>
-        )}
 
-        <form onSubmit={handleAuth}>
-          {!isLogin && (
-            <div className="form-group">
-              <label className="form-label">Organization Name</label>
+          {/* Heading */}
+          <div style={{ marginBottom: '24px' }}>
+            <h1 className="text-2xl" style={{ letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: '6px' }}>
+              {isLogin ? 'Sign in to botforweb' : 'Create your organization'}
+            </h1>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {isLogin ? 'Enter your details to manage your RAG chatbot' : 'Set up your documentation knowledge base'}
+            </p>
+          </div>
+
+          <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {!isLogin && (
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Organization Name</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="Acme Corporation"
+                  required
+                />
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Email Address</label>
               <input 
-                type="text" 
+                type="email" 
                 className="form-input" 
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
-                placeholder="e.g. Acme Dev Corp"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@work.com"
                 required
               />
             </div>
-          )}
 
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <input 
-              type="email" 
-              className="form-input" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Password</label>
+              <input 
+                type="password" 
+                className="form-input" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {/* Error Banner */}
+            {authError && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                background: 'var(--danger-bg)',
+                color: 'var(--danger)',
+                border: '1px solid rgba(220, 38, 38, 0.15)',
+                borderRadius: 'var(--radius-md)',
+                padding: '10px 12px',
+                fontSize: '12px',
+                fontWeight: 500,
+                lineHeight: '1.4',
+                marginTop: '4px'
+              }}>
+                <AlertTriangle size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <button 
+              type="submit" 
+              className="btn btn-primary btn-lg"
+              style={{ width: '100%', marginTop: '8px' }}
+              disabled={authLoading}
+            >
+              {authLoading ? 'Signing in...' : isLogin ? 'Sign In' : 'Create Account'}
+            </button>
+          </form>
+
+          {/* Mode Switcher */}
+          <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            {isLogin ? (
+              <>
+                New to botforweb?{' '}
+                <button 
+                  type="button" 
+                  onClick={() => { setIsLogin(false); setAuthError(''); }} 
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    padding: 0,
+                    textDecoration: 'none'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                  onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                >
+                  Register organization
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button 
+                  type="button" 
+                  onClick={() => { setIsLogin(true); setAuthError(''); }} 
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    padding: 0,
+                    textDecoration: 'none'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                  onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                >
+                  Sign In
+                </button>
+              </>
+            )}
           </div>
-
-          <div className="form-group" style={{ marginBottom: '24px' }}>
-            <label className="form-label">Password</label>
-            <input 
-              type="password" 
-              className="form-input" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className={`btn btn-primary ${authLoading ? 'btn-disabled' : ''}`}
-            style={{ width: '100%', padding: '10px', fontSize: '14px', fontWeight: 500 }}
-            disabled={authLoading}
-          >
-            {authLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-          {isLogin ? (
-            <>
-              Don't have an account?{' '}
-              <button 
-                type="button" 
-                onClick={() => { setIsLogin(false); setAuthError(''); }} 
-                style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 500, padding: 0, textDecoration: 'none' }}
-                onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-              >
-                Register organization
-              </button>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <button 
-                type="button" 
-                onClick={() => { setIsLogin(true); setAuthError(''); }} 
-                style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 500, padding: 0, textDecoration: 'none' }}
-                onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-              >
-                Sign In
-              </button>
-            </>
-          )}
         </div>
       </div>
+
+      {/* Right Column (40%): Product Feature Panel */}
+      <div style={{
+        flex: '1 1 40%',
+        background: 'var(--bg-subtle)',
+        borderLeft: '1px solid var(--border-default)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '40px',
+        overflow: 'hidden'
+      }} className="auth-feature-panel">
+        
+        <div style={{ maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Header text */}
+          <div style={{ textAlign: 'left' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '8px' }}>
+              Answer every developer question.
+            </h2>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              Connect your PDFs, Markdown directories, and ZIP archives. Let our hybrid dense/sparse RAG engine serve accurate, cited responses in milliseconds.
+            </p>
+          </div>
+
+          {/* High Fidelity CSS Sandbox Mockup */}
+          <div style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-md)',
+            overflow: 'hidden',
+            width: '100%',
+            height: '240px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Fake Browser Topbar */}
+            <div style={{
+              height: '32px',
+              borderBottom: '1px solid var(--border-default)',
+              background: 'var(--bg-app)',
+              padding: '0 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff5f56' }} />
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ffbd2e' }} />
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#27c93f' }} />
+              </div>
+              <div style={{
+                fontSize: '11px',
+                color: 'var(--text-tertiary)',
+                fontFamily: 'var(--font-mono)',
+                background: 'var(--bg-surface)',
+                padding: '1px 16px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-default)'
+              }}>
+                sandbox.botforweb.io
+              </div>
+              <div style={{ width: '32px' }} />
+            </div>
+
+            {/* Chat Simulation Content */}
+            <div style={{
+              flexGrow: 1,
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              background: 'var(--bg-surface)',
+              overflowY: 'hidden'
+            }}>
+              {/* User Bubble */}
+              <div style={{ alignSelf: 'flex-end', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '6px 10px', fontSize: '11px', maxWidth: '80%' }}>
+                How do I install the CLI?
+              </div>
+
+              {/* Bot response */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignSelf: 'flex-start', maxWidth: '85%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <MessageSquare size={10} />
+                  Assistant
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  Install the package globally via npm:
+                  <div style={{
+                    background: '#18181b',
+                    color: '#e4e4e7',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '10px',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    margin: '4px 0',
+                    border: '1px solid var(--border-default)'
+                  }}>
+                    npm install -g @botforweb/cli
+                  </div>
+                </div>
+
+                {/* Citations / Meta */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '9px', color: 'var(--text-tertiary)' }}>
+                    <Clock size={8} /> 142ms
+                  </span>
+                  <span style={{
+                    fontSize: '9px',
+                    color: 'var(--success)',
+                    background: 'var(--success-bg)',
+                    padding: '1px 6px',
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: 500
+                  }}>
+                    cli-setup.md
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Security stamp */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '11px' }}>
+            <ShieldCheck size={14} style={{ color: 'var(--success)' }} />
+            <span>Strict Row-Level Security & collection isolation.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Inline styles for media query hides */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .auth-feature-panel {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

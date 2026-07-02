@@ -20,11 +20,39 @@ export interface DocumentItem {
   created_at: string;
 }
 
+export interface Citation {
+  document_id: number;
+  filename: string;
+  text: string;
+}
+
 export interface ChatQueryResponse {
+  conversation_id: number;
   answer: string;
-  sources: string[];
+  citations: Citation[];
+  confidence_score: number;
+  faithfulness_score: number;
   latency_ms: number;
 }
+
+export interface Message {
+  id: number;
+  conversation_id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  latency_ms?: number;
+  tokens_used?: number;
+  created_at: string;
+}
+
+export interface ConversationResponse {
+  id: number;
+  title: string;
+  organization_id: number;
+  created_at: string;
+  messages?: Message[];
+}
+
 
 class ApiService {
   private getHeaders(token?: string | null, apiKey?: string | null) {
@@ -133,11 +161,11 @@ class ApiService {
     }
   }
 
-  async queryChatbot(apiKey: string, query: string): Promise<ChatQueryResponse> {
+  async queryChatbot(apiKey: string, query: string, conversationId?: number | null): Promise<ChatQueryResponse> {
     const res = await fetch(`${API_BASE}/api/v1/chat/query`, {
       method: 'POST',
       headers: this.getHeaders(null, apiKey),
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, conversation_id: conversationId }),
     });
 
     const data = await res.json();
@@ -145,6 +173,26 @@ class ApiService {
       throw new Error(data.detail || 'Chat query failed.');
     }
     return data;
+  }
+
+  async getConversations(token: string): Promise<ConversationResponse[]> {
+    const res = await fetch(`${API_BASE}/api/v1/chat/conversations`, {
+      headers: this.getHeaders(token),
+    });
+    if (!res.ok) {
+      throw new Error('Failed to retrieve conversations.');
+    }
+    return res.json();
+  }
+
+  async getConversation(token: string, conversationId: number): Promise<ConversationResponse> {
+    const res = await fetch(`${API_BASE}/api/v1/chat/conversations/${conversationId}`, {
+      headers: this.getHeaders(token),
+    });
+    if (!res.ok) {
+      throw new Error('Failed to retrieve conversation details.');
+    }
+    return res.json();
   }
 }
 

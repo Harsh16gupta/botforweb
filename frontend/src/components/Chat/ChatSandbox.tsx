@@ -1,172 +1,676 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../../services/api';
-import type { Organization } from '../../services/api';
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  sources?: string[];
-  latency_ms?: number;
-}
+import type { Organization, ConversationResponse, Message, Citation } from '../../services/api';
+import { 
+  Plus, 
+  Search, 
+  MessageSquare, 
+  Clock, 
+  Send, 
+  AlertTriangle, 
+  ChevronDown, 
+  ChevronUp, 
+  BookOpen, 
+  HelpCircle 
+} from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatSandboxProps {
+  token: string;
   org: Organization | null;
   showToast: (message: string, type?: 'success' | 'error') => void;
 }
 
-export default function ChatSandbox({ org, showToast }: ChatSandboxProps) {
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+export default function ChatSandbox({ token, org, showToast }: ChatSandboxProps) {
+  // Conversations list state
+  const [conversations, setConversations] = useState<ConversationResponse[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [searchThreadQuery, setSearchThreadQuery] = useState('');
+  
+  // Selected conversation
+  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+
+  // Chat query state
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState('');
+  
+  // Custom tracking for citations and warnings of the active turn
+  const [lastTurnCitations, setLastTurnCitations] = useState<Record<number, Citation[]>>({});
+  const [expandedCitationId, setExpandedCitationId] = useState<string | null>(null);
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, chatLoading]);
+
+  // Load conversations list
+  const loadConversations = async (silent = false) => {
+    if (!silent) setConversationsLoading(true);
+    try {
+      const data = await api.getConversations(token);
+      setConversations(data);
+    } catch (err: any) {
+      console.error(err);
+      showToast('Failed to load conversations list', 'error');
+    } finally {
+      if (!silent) setConversationsLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    if (token) {
+      loadConversations();
+    }
+  }, [token]);
+
+  // Load conversation detail
+  const selectConversation = async (conversationId: number) => {
+    setActiveConversationId(conversationId);
+    setMessagesLoading(true);
+    try {
+      const data = await api.getConversation(token, conversationId);
+      setMessages(data.messages || []);
+      // Map existing citations if present
+      setLastTurnCitations({});
+    } catch (err: any) {
+      showToast(err.message || 'Failed to load messages', 'error');
+    } finally {
+      setMessagesLoading(false);
+    }
+  };
+
+  // Start new conversation
+  const handleNewConversation = () => {
+    setActiveConversationId(null);
+    setMessages([]);
+    setChatInput('');
+    setLastTurnCitations({});
+    showToast('Started new test sandbox conversation');
+  };
+
+  // Send message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || chatLoading) return;
 
-    const userMsg = chatInput;
+    const userQuery = chatInput;
     setChatInput('');
-    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    
+    // Optimistic local state update for user message
+    const tempUserMsg: Message = {
+      id: Math.random(),
+      conversation_id: activeConversationId || 0,
+      role: 'user',
+      content: userQuery,
+      created_at: new Date().toISOString()
+    };
+    
+    setMessages(prev => [...prev, tempUserMsg]);
     setChatLoading(true);
-    setChatError('');
 
     try {
       if (!org?.api_key) {
-        throw new Error('API Key missing. Make sure your organization is loaded.');
+        throw new Error('API Key missing. Load your organization settings.');
       }
 
-      const res = await api.queryChatbot(org.api_key, userMsg);
-      setChatMessages(prev => [
-        ...prev, 
-        { 
-          role: 'assistant', 
-          content: res.answer,
-          sources: res.sources || [],
-          latency_ms: res.latency_ms
-        }
-      ]);
+      const res = await api.queryChatbot(org.api_key, userQuery, activeConversationId);
+      
+      // Update active thread ID if it was a new conversation
+      const returnedConvId = res.conversation_id;
+      if (!activeConversationId && returnedConvId) {
+        setActiveConversationId(returnedConvId);
+        loadConversations(true);
+      }
+
+      // Create message objects for local rendering
+      const assistantMsg: Message = {
+        id: Math.random(),
+        conversation_id: returnedConvId,
+        role: 'assistant',
+        content: res.answer,
+        latency_ms: res.latency_ms,
+        created_at: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, assistantMsg]);
+      
+      // Store citations locally mapped by message ID
+      if (res.citations && res.citations.length > 0) {
+        setLastTurnCitations(prev => ({
+          ...prev,
+          [assistantMsg.id]: res.citations
+        }));
+      }
+
     } catch (err: any) {
-      setChatError(err.message || 'Chat query failed.');
-      showToast(err.message || 'Query failed', 'error');
+      showToast(err.message || 'Sandbox query failed', 'error');
+      // Remove optimistic user message on error
+      setMessages(prev => prev.filter(m => m.id !== tempUserMsg.id));
     } finally {
       setChatLoading(false);
     }
   };
 
+  // Filter conversations list
+  const filteredConversations = useMemo(() => {
+    if (!searchThreadQuery.trim()) return conversations;
+    const q = searchThreadQuery.toLowerCase();
+    return conversations.filter(c => c.title.toLowerCase().includes(q));
+  }, [conversations, searchThreadQuery]);
+
+  // Relative timestamp parsing helper
+  const formatTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Custom code blocks renderer for markdown
+  const markdownComponents = {
+    code({ node, inline, className, children, ...props }: any) {
+      return inline ? (
+        <code className="font-mono text-xs" style={{ background: 'var(--bg-muted)', padding: '2px 4px', borderRadius: '4px', color: 'var(--text-primary)' }} {...props}>
+          {children}
+        </code>
+      ) : (
+        <pre style={{
+          background: '#18181b',
+          color: '#e4e4e7',
+          padding: '12px',
+          borderRadius: 'var(--radius-md)',
+          overflowX: 'auto',
+          margin: '8px 0',
+          border: '1px solid var(--border-default)'
+        }}>
+          <code className="font-mono" style={{ fontSize: '12px' }} {...props}>
+            {children}
+          </code>
+        </pre>
+      );
+    }
+  };
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', flexGrow: 1 }}>
-      <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, height: '600px', overflow: 'hidden' }}>
-        
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: '260px 1fr', 
+      gap: 0, 
+      flexGrow: 1, 
+      height: '620px', 
+      background: 'var(--bg-surface)',
+      border: '1px solid var(--border-default)',
+      borderRadius: 'var(--radius-lg)',
+      overflow: 'hidden'
+    }}>
+      
+      {/* 7.1 Left Column: Conversations List */}
+      <div style={{
+        borderRight: '1px solid var(--border-default)',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--bg-app)',
+        height: '100%'
+      }}>
         {/* Header */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>RAG Chat Sandbox</h3>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Simulating client widget queries</div>
-          </div>
+        <div style={{
+          padding: '16px 12px',
+          borderBottom: '1px solid var(--border-default)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            Conversations
+          </span>
           <button 
-            onClick={() => setChatMessages([])} 
-            className="btn btn-secondary" 
-            style={{ padding: '6px 10px', fontSize: '12px' }}
+            onClick={handleNewConversation}
+            className="btn btn-secondary btn-sm"
+            style={{ width: '26px', height: '26px', padding: 0, borderRadius: 'var(--radius-sm)' }}
+            title="New Chat"
           >
-            Clear History
+            <Plus size={14} />
           </button>
         </div>
 
-        {/* Message list */}
-        <div style={{ flexGrow: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {chatMessages.length === 0 ? (
-            <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', maxWidth: '380px' }}>
-              Type a question below to test how the RAG model queries your indexed documentation and cites its sources.
-            </div>
-          ) : (
-            chatMessages.map((msg, i) => (
-              <div key={i} style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                alignSelf: 'stretch'
-              }}>
-                <div style={{ 
-                  fontSize: '12px', 
-                  fontWeight: 600, 
-                  color: msg.role === 'user' ? 'var(--accent-color)' : 'var(--text-primary)' 
-                }}>
-                  {msg.role === 'user' ? 'User' : 'Assistant'}
-                </div>
-                <div style={{
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  whiteSpace: 'pre-wrap',
-                  color: 'var(--text-primary)'
-                }}>
-                  {msg.content}
-                </div>
-                
-                {/* Message Metadata & Citations */}
-                {msg.role === 'assistant' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                    {msg.latency_ms && (
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                        Latency: {msg.latency_ms}ms
-                      </span>
-                    )}
-                    {msg.sources && msg.sources.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {msg.sources.map((src, idx) => (
-                          <span key={idx} style={{ 
-                            background: '#27272a', 
-                            color: 'var(--text-secondary)', 
-                            padding: '2px 8px', 
-                            borderRadius: '4px', 
-                            fontSize: '12px',
-                            fontFamily: 'var(--font-mono)',
-                            border: '1px solid rgba(255,255,255,0.02)'
-                          }}>
-                            {src}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-          {chatLoading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: 'stretch' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Assistant</div>
-              <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Thinking...</div>
-            </div>
-          )}
-          {chatError && (
-            <div style={{ alignSelf: 'center', color: 'var(--danger-color)', fontSize: '13px', fontFamily: 'var(--font-mono)' }}>
-              {chatError}
-            </div>
-          )}
-        </div>
-
-        {/* Query Input Form */}
-        <form onSubmit={handleSendMessage} style={{ padding: '16px 24px', borderTop: '1px solid var(--panel-border)', display: 'flex', gap: '12px' }}>
+        {/* Search */}
+        <div style={{ padding: '8px 12px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <Search size={12} style={{ position: 'absolute', left: '20px', color: 'var(--text-tertiary)' }} />
           <input 
             type="text" 
             className="form-input" 
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask a question about the uploaded documents..."
-            disabled={chatLoading}
-            style={{ fontSize: '14px' }}
+            placeholder="Search threads..."
+            value={searchThreadQuery}
+            onChange={(e) => setSearchThreadQuery(e.target.value)}
+            style={{ 
+              height: '30px', 
+              paddingLeft: '26px', 
+              fontSize: '11px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-default)',
+              boxShadow: 'none'
+            }}
           />
+        </div>
+
+        {/* Threads List */}
+        <div style={{ flexGrow: 1, overflowY: 'auto', padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {conversationsLoading ? (
+            <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '11px' }}>
+              Loading threads...
+            </div>
+          ) : filteredConversations.length === 0 ? (
+            <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '11px' }}>
+              No threads found
+            </div>
+          ) : (
+            filteredConversations.map((conv) => {
+              const isActive = activeConversationId === conv.id;
+              return (
+                <button
+                  key={conv.id}
+                  onClick={() => selectConversation(conv.id)}
+                  style={{
+                    background: isActive ? 'var(--bg-subtle)' : 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(244,244,245,0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <span 
+                    className="text-xs font-medium" 
+                    style={{ 
+                      color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      width: '100%'
+                    }}
+                  >
+                    {conv.title}
+                  </span>
+                  <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                    {new Date(conv.created_at).toLocaleDateString()}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* 7.2 Right Column: Chat Pane */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        background: 'var(--bg-surface)'
+      }}>
+        {/* Chat Pane Header */}
+        <div style={{
+          height: '49px',
+          borderBottom: '1px solid var(--border-default)',
+          padding: '0 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'var(--bg-surface)'
+        }}>
+          <div>
+            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+              {activeConversationId 
+                ? conversations.find(c => c.id === activeConversationId)?.title || 'Test Thread' 
+                : 'Sandbox Simulator'}
+            </span>
+          </div>
           <button 
-            type="submit" 
-            className={`btn btn-primary ${chatLoading ? 'btn-disabled' : ''}`}
-            disabled={chatLoading}
-            style={{ padding: '8px 16px', fontSize: '13px' }}
+            onClick={handleNewConversation}
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: '11px', height: '28px' }}
           >
-            Send
+            Clear playground
           </button>
+        </div>
+
+        {/* Message Container Turn list */}
+        <div style={{
+          flexGrow: 1,
+          overflowY: 'auto',
+          padding: '24px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '24px'
+        }}>
+          {messagesLoading ? (
+            <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
+              <div className="animate-pulse-opacity">Loading thread history...</div>
+            </div>
+          ) : messages.length === 0 && !chatLoading ? (
+            <div style={{ 
+              margin: 'auto', 
+              textAlign: 'center', 
+              maxWidth: '360px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'var(--bg-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-secondary)'
+              }}>
+                <HelpCircle size={18} />
+              </div>
+              <div>
+                <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  Interact with the RAG Bot
+                </h4>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  Ask questions about the documents in your index. You'll see real-time generation times, source documents, and trust flags.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {messages.map((msg) => {
+                const isUser = msg.role === 'user';
+                const msgCitations = lastTurnCitations[msg.id] || [];
+                const isHallucinating = msg.content.includes('WARNING:');
+                
+                // Clean content helper to strip warning if we display a banner
+                let displayContent = msg.content;
+                if (isHallucinating) {
+                  displayContent = msg.content.replace(/^WARNING:\s*/i, '').replace(/This answer may contain unsupported details\.\s*/i, '');
+                }
+
+                return (
+                  <div 
+                    key={msg.id}
+                    style={{
+                      alignSelf: isUser ? 'flex-end' : 'flex-start',
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: isUser ? 'flex-end' : 'flex-start',
+                      gap: '6px'
+                    }}
+                  >
+                    {/* User turns */}
+                    {isUser ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', maxWidth: '75%' }}>
+                        <div style={{
+                          background: 'var(--bg-subtle)',
+                          border: '1px solid var(--border-default)',
+                          borderRadius: 'var(--radius-lg)',
+                          padding: '10px 14px',
+                          fontSize: '13px',
+                          color: 'var(--text-primary)',
+                          textAlign: 'left',
+                          boxShadow: 'var(--shadow-xs)',
+                          wordBreak: 'break-word'
+                        }}>
+                          {msg.content}
+                        </div>
+                        <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                          {formatTime(msg.created_at)}
+                        </span>
+                      </div>
+                    ) : (
+                      /* Assistant turns */
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        
+                        {/* Hallucination Banner */}
+                        {isHallucinating && (
+                          <div style={{
+                            background: 'var(--warning-bg)',
+                            border: '1px solid rgba(202, 138, 4, 0.15)',
+                            color: 'var(--warning)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '8px 12px',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginBottom: '4px'
+                          }}>
+                            <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                            <span>This answer may contain unsupported details.</span>
+                          </div>
+                        )}
+
+                        {/* Heading */}
+                        <div style={{ 
+                          fontSize: '11px', 
+                          fontWeight: 600, 
+                          color: 'var(--text-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <MessageSquare size={12} />
+                          <span>Assistant</span>
+                          <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, fontFamily: 'var(--font-mono)' }}>
+                            · {formatTime(msg.created_at)}
+                          </span>
+                        </div>
+
+                        {/* Rich Text Response */}
+                        <div style={{ 
+                          fontSize: '13px', 
+                          lineHeight: '1.6', 
+                          color: 'var(--text-primary)',
+                          textAlign: 'left',
+                          wordBreak: 'break-word'
+                        }} className="markdown-body">
+                          <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
+                            {displayContent}
+                          </ReactMarkdown>
+                        </div>
+
+                        {/* Metadata row */}
+                        <div style={{ 
+                          display: 'flex', 
+                          flexWrap: 'wrap', 
+                          alignItems: 'center', 
+                          gap: '10px', 
+                          marginTop: '6px',
+                          borderTop: '1px solid var(--border-default)',
+                          paddingTop: '6px'
+                        }}>
+                          {msg.latency_ms && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                              <Clock size={11} />
+                              {msg.latency_ms}ms
+                            </span>
+                          )}
+
+                          {msgCitations.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginRight: '2px' }}>·</span>
+                              {msgCitations.map((citation, idx) => {
+                                const citationKey = `${msg.id}-${idx}`;
+                                const isExpanded = expandedCitationId === citationKey;
+                                
+                                return (
+                                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <button
+                                      onClick={() => setExpandedCitationId(isExpanded ? null : citationKey)}
+                                      className="btn btn-secondary"
+                                      style={{
+                                        height: '20px',
+                                        padding: '0 8px',
+                                        fontSize: '10px',
+                                        borderRadius: 'var(--radius-full)',
+                                        background: 'var(--bg-muted)',
+                                        border: '1px solid var(--border-default)',
+                                        color: 'var(--text-secondary)',
+                                        gap: '3px'
+                                      }}
+                                    >
+                                      <BookOpen size={10} />
+                                      {citation.filename}
+                                      {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Inline Expandable Citation Text Panel */}
+                        {msgCitations.map((citation, idx) => {
+                          const citationKey = `${msg.id}-${idx}`;
+                          if (expandedCitationId !== citationKey) return null;
+                          
+                          return (
+                            <div 
+                              key={`panel-${idx}`}
+                              style={{
+                                background: 'var(--bg-subtle)',
+                                border: '1px solid var(--border-default)',
+                                borderRadius: 'var(--radius-md)',
+                                padding: '12px',
+                                marginTop: '4px',
+                                fontSize: '11px',
+                                fontFamily: 'var(--font-mono)',
+                                color: 'var(--text-secondary)',
+                                lineHeight: '1.5',
+                                animation: 'modal-enter 100ms ease-out'
+                              }}
+                            >
+                              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Source Excerpt from {citation.filename}:
+                              </div>
+                              <div style={{ whiteSpace: 'pre-wrap' }}>{citation.text}</div>
+                            </div>
+                          );
+                        })}
+
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Thinking State */}
+          {chatLoading && (
+            <div style={{ maxWidth: '640px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: 'flex-start' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MessageSquare size={12} />
+                Assistant
+              </div>
+              <div style={{ display: 'flex', gap: '4px', padding: '6px 12px', alignItems: 'center', height: '24px' }}>
+                <span className="thinking-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'pulse-opacity 1.2s infinite ease-in-out', animationDelay: '0ms' }} />
+                <span className="thinking-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'pulse-opacity 1.2s infinite ease-in-out', animationDelay: '200ms' }} />
+                <span className="thinking-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'pulse-opacity 1.2s infinite ease-in-out', animationDelay: '400ms' }} />
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Composer Textarea Send form */}
+        <form 
+          onSubmit={handleSendMessage}
+          style={{
+            padding: '16px 20px',
+            borderTop: '1px solid var(--border-default)',
+            background: 'var(--bg-surface)'
+          }}
+        >
+          <div style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-xs)',
+            overflow: 'hidden',
+            padding: '4px'
+          }}>
+            <textarea
+              className="form-textarea"
+              rows={1}
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e);
+                }
+              }}
+              placeholder="Ask a question about the uploaded documents..."
+              disabled={chatLoading}
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                background: 'transparent',
+                resize: 'none',
+                height: '36px',
+                padding: '8px 48px 8px 12px',
+                fontSize: '13px',
+                lineHeight: '1.4'
+              }}
+            />
+            
+            <button
+              type="submit"
+              disabled={!chatInput.trim() || chatLoading}
+              className="btn btn-primary"
+              style={{
+                position: 'absolute',
+                right: '8px',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: chatInput.trim() ? 'var(--accent)' : 'var(--bg-muted)',
+                borderColor: 'transparent',
+                color: 'var(--bg-surface)'
+              }}
+            >
+              <Send size={12} />
+            </button>
+          </div>
         </form>
 
       </div>
+
     </div>
   );
 }
