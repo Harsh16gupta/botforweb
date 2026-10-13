@@ -101,10 +101,29 @@ The system enforces strict data isolation between tenants at the database layer 
 
 ## Local Setup and Installation
 
+### Quick Start (Single Command Runner)
+
+The entire platform (Docker infrastructure, backend FastAPI, Celery worker, and Vite React frontend) can be started using a single command:
+
+1. Follow the Prerequisites below.
+2. Create and configure the `backend/.env` file (see configuration details in Step 2 of Manual Setup).
+3. Run the orchestration script from the project root:
+   ```bash
+   ./run.sh
+   ```
+   Or:
+   ```bash
+   python3 run.py
+   ```
+   This will automatically spin up the Docker containers, wait for them to be healthy, check/install dependencies, start the backend, worker, and frontend concurrently, and multiplex their logs. Press `Ctrl+C` to terminate all services cleanly.
+
 ### Prerequisites
 * Docker and Docker Compose installed.
 * Python 3.12+ installed.
 * Node.js 18+ and npm installed.
+
+### Manual Setup Steps
+If you prefer to run or debug services individually, follow these manual steps:
 
 ### Step 1: Start Infrastructure Services
 From the project root directory, launch PostgreSQL, Qdrant, Redis, and Jaeger:
